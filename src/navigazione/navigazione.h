@@ -17,7 +17,8 @@ bool sensoRotazione(uint8_t pompa);
 void runSteady(uint8_t pompa);
 uint8_t selezionaVelocitaDefault(uint8_t velocitaAttuale);
 
-bool selezioneProfilo();
+bool selezioneProfilo(void *ptrDatabase_);
+void listaProfili(void * ptrProfiloAttuale_);
 void runProfilo(uint8_t pompa);
 
 #endif

@@ -18,7 +18,14 @@
 #define RED 0XF800
 #define GREY WROVER_DARKGREY
 
-GFXcanvas16 canvasVelocita(200, 85);     // secondo buffer per ridurre il flickering
+
+GFXcanvas16     canvasVelocita(200, 85);     // secondo buffer per ridurre il flickering
+
+uint16_t        x_boxDestro = 122;
+uint16_t        y_boxDestro = 14;
+uint16_t        w_boxDestro = 185;
+uint16_t        h_boxDestro = 164;
+GFXcanvas16     canvasBoxDestro(w_boxDestro, h_boxDestro);
 
 void mostraSchermataIniziale(WROVER_KIT_LCD d){   //short for display
     
@@ -118,7 +125,7 @@ void mostraMenu(WROVER_KIT_LCD d){
     d.drawRect(117, 8, 195, 174, 0xAD55);
     d.drawRect(118, 9, 193, 172, 0x94B2);
     d.drawRect(119, 10, 191, 170, 0x6B4D);
-    d.drawRect(120, 11, 189, 168, 0x52AA);
+    d.drawRect(120, 11, 189, 168, 0x52AA); // rettangolo più interno
     d.drawLine(115, 183, 115, 6, WHITE);
     d.drawLine(116, 7, 116, 182, 0xD6BA);
     d.drawLine(103, 182, 103, 6, WHITE);
@@ -460,7 +467,6 @@ void aggiornaStatoSteady(WROVER_KIT_LCD d, uint8_t stato) {
     }
 }
 
-
 void mostraSelezioneRotazione(WROVER_KIT_LCD d, uint8_t rotazioneSelezionata, bool clearScreen) {
 
     const uint8_t       rotazioneAntioraria = 0;
@@ -705,4 +711,44 @@ void disegnaCursorePiccolo (WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t col
     d.drawRect(X + 12, Y + 7, 2, 2, colore);
     d.drawPixel(X + 14, Y + 7, colore);
     d.drawPixel(X + 14, Y + 8, colore);
+}
+
+void mostraListaProfili(WROVER_KIT_LCD d, bool clearScreen, String attuale, String pre, String next) {
+
+    int16_t y_offset = 20;
+
+    int16_t    X = 135 - x_boxDestro;
+    int16_t    Y1 = 40 - y_boxDestro + y_offset;
+    int16_t    Y2 = 85 - y_boxDestro + y_offset;
+    int16_t    Y3 = 135 - y_boxDestro + y_offset;
+
+    canvasBoxDestro.fillScreen(BLACK);
+    canvasBoxDestro.setFont(&FreeSansBold12pt7b);
+    canvasBoxDestro.setTextWrap(false);
+    canvasBoxDestro.setCursor(X, Y2);
+    canvasBoxDestro.setTextColor(WHITE);
+    canvasBoxDestro.print(attuale);
+
+    canvasBoxDestro.setFont(&FreeSans12pt7b);
+    canvasBoxDestro.setTextColor(GREY);
+
+    canvasBoxDestro.setCursor(X + 20, Y1);
+    if (pre.length() > 13)
+    {
+        canvasBoxDestro.setFont(&FreeSans9pt7b);
+        canvasBoxDestro.setCursor(X + 20, Y1 - 10);
+    }
+    canvasBoxDestro.print(pre);
+
+    canvasBoxDestro.setCursor(X + 20, Y3);
+    if (next.length() > 13)
+    {
+        canvasBoxDestro.setFont(&FreeSans9pt7b);
+        canvasBoxDestro.setCursor(X + 20, Y3 - 8);
+    }
+    canvasBoxDestro.print(next);
+
+    d.drawBitmap(x_boxDestro, y_boxDestro, canvasBoxDestro.width(), canvasBoxDestro.height(), 
+                    canvasBoxDestro.getBuffer());
+
 }

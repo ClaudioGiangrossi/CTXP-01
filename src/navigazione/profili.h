@@ -21,6 +21,7 @@ bool          cancellaProfilo(profilo_t *database, profilo_t daCancellare); // T
 bool          caricaProfiliBase(profilo_t *database);
 bool          caricaProfiliUtente(profilo_t *database); // TODO quelli salvati in memoria, inseriti da seriale
 profilo_t*    caricaDatabase(profilo_t*);
+profilo_t*    cercaProfilo(profilo_t *ptrNavigazione, String nomeProfilo);
 void          visualizzaDatabase(profilo_t*);
 
 #endif

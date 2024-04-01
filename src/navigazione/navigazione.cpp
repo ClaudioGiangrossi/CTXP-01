@@ -57,12 +57,7 @@ uint8_t selezioneMenu() {
         }
 
         posizioneEncoder = fermo;
-
-        #ifndef NDEBUG
-        Serial.printf("Selezione MENU: %d\n", selezione);
-        #endif
-
-        delay(50);
+        delay(200);
 
     } while (button1Pressed == false);
 
@@ -107,21 +102,15 @@ uint8_t selezionePompa() {
 
     if (button2Pressed == true)
     {
-        #ifndef NDEBUG
-        Serial.println("BACK");
-        #endif
-
         return menu;
     }
 
     if (button1Pressed == true)
     {
-        if (registraPompaSelezionata(selezione_pompa))
+        if (registraPompaSelezionata(selezione_pompa) == false)
         {
-            #ifndef NDEBUG
-            Serial.printf("DRIVED POMPA %d", selezione_pompa);
-            #endif
-            /* TODO: conferma visiva sul display */
+            Serial.println("ERRORE in selezionePompa");
+            // TODO: mostrare l'errore sul display
         }
     }
 
@@ -158,13 +147,6 @@ uint8_t menuSteady() {
         }
 
         posizioneEncoder = fermo;
-        
-        #ifndef NDEBUG
-        if      (selezione == run)          {Serial.println("AVVIO?");}
-        else if (selezione == velocita)     {Serial.println("VELOCITÀ?");}
-        else if (selezione == rotazione)    {Serial.println("ROTAZIONE?");}
-        #endif
-
         delay(150);
 
     } while ((button1Pressed == false) && (button2Pressed == false));
@@ -201,10 +183,7 @@ uint8_t menuSteady() {
         return steady;
     }
 
-    #ifndef NDEBUG
     Serial.println("Non dovrei essere qui -> fine menuSteady");
-    #endif
-
     return menu;
     
 }
@@ -440,8 +419,6 @@ uint8_t menuProfilo() {
 
     profilo_t *ptrDatabase = &database;
 
-    //caricaDatabaseProfili((void*) ptrDatabase);
-
     if (caricaDatabase(ptrDatabase) == NULL)
     {
         Serial.println("ERRORE: database nullo");
@@ -458,16 +435,8 @@ uint8_t menuProfilo() {
     uint8_t     pompa = pompaSelezionata;
 
     mostraProfilo(display, selezione, true);
-
     resetFlagsUI();
 
-
-    #ifndef NDEBUG
-    Serial.println("RUN -> Opzione 0");    
-    Serial.println("PROFILO -> Opzione 1");
-    Serial.println("ROTAZIONE -> Opzione 2");    
-    #endif
-    
     do
     {
         if (posizioneEncoder == sinistra)
@@ -477,10 +446,6 @@ uint8_t menuProfilo() {
                 selezione--;
                 mostraProfilo(display, selezione, false);
             }
-           
-            #ifndef NDEBUG
-            Serial.printf("\nOpzione menu profilo: %u", selezione);
-            #endif
         }
         else if (posizioneEncoder == destra)
         {
@@ -490,10 +455,11 @@ uint8_t menuProfilo() {
                 mostraProfilo(display, selezione, false);
             }
 
-            #ifndef NDEBUG
-            Serial.printf("\nOpzione menu profilo: %u", selezione);
-            #endif            
         }
+
+        #ifndef NDEBUG
+        Serial.printf("%u, %u \n", button1Pressed, button2Pressed);
+        #endif
 
         posizioneEncoder = fermo;
         delay(80);
@@ -512,7 +478,7 @@ uint8_t menuProfilo() {
 
         if (selezione == 1)
         {
-            if (selezioneProfilo())
+            if (selezioneProfilo((void*) ptrDatabase))
             {
                 runProfilo(pompa);
             }
@@ -537,18 +503,114 @@ uint8_t menuProfilo() {
     
 }
 
-bool selezioneProfilo() {
-    resetFlagsUI();
-    delay(100);
+bool selezioneProfilo(void *ptrDatabase_) {
 
+    String profiloAttuale = ultimoProfiloCaricato;
 
+    profilo_t *ptrDatabase = (profilo_t*) ptrDatabase_;     // cast necessario perchè sono scarso
+
+    profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, profiloAttuale);
+
+    if (profiloSelezionato == NULL)
+    {
+        Serial.println("ERRORE in selezioneProfilo");
+        return false;
+    }
+
+    listaProfili(profiloSelezionato);
 
     #ifndef NDEBUG
-    Serial.println("\nProfilo selezionato correttamente");
+    Serial.printf("%u, %u \n", button1Pressed, button2Pressed);
+    Serial.println("---------------------------------------");
     #endif
-    
-    delay(100);
-    return true;
+
+    delay(500);
+    resetFlagsUI();
+
+    do
+    {
+        if (posizioneEncoder != fermo)
+        {
+            if (posizioneEncoder == sinistra)
+            {   
+                if ((profiloSelezionato->pre != NULL) && (profiloSelezionato->pre->nome != "head"))
+                {
+                    profiloSelezionato = profiloSelezionato->pre;
+                }
+            }
+            else if (posizioneEncoder == destra)
+            {
+                if (profiloSelezionato->next != NULL)
+                {
+                    profiloSelezionato = profiloSelezionato->next;
+                }
+            }
+
+            if (profiloSelezionato->nome != "head")     // controllo forse ridondante
+            {
+                listaProfili(profiloSelezionato);
+            }
+
+            #ifndef NDEBUG
+            Serial.printf("%u, %u \n", button1Pressed, button2Pressed);
+            #endif
+
+            posizioneEncoder = fermo;
+            delay(250);
+
+        }
+
+    } while((button2Pressed == false) && (button1Pressed == false));
+
+    if (button2Pressed == true)
+    {
+        return false;
+    }
+
+    if (button1Pressed == true)
+    {
+        // evitiamo di caricare per errore roba che non dovrebbe essere caricata
+        if ((profiloSelezionato != NULL) && (profiloSelezionato->nome != "head"))
+        {
+            scriviProfiloCaricato(profiloSelezionato->nome);
+            ultimoProfiloCaricato = profiloSelezionato->nome;
+        }
+
+        #ifndef NDEBUG
+        Serial.println("\nProfilo selezionato correttamente");
+        #endif
+
+        delay(100);
+        return true;
+    }
+
+    return false;
+}
+
+void listaProfili(void * ptrProfiloAttuale_) {
+    profilo_t *ptrProfiloAttuale = (profilo_t*) ptrProfiloAttuale_;
+
+    if ((ptrProfiloAttuale->pre == NULL) || (ptrProfiloAttuale->pre->nome == "head"))
+    {                                                // ptrProfiloAttuale punta a head, lista vuota
+      mostraListaProfili(display, true,              // non dovrebbe accadere 
+                        ptrProfiloAttuale->nome,
+                        "  --",
+                        ptrProfiloAttuale->next->nome);  
+    }
+    else if (ptrProfiloAttuale->next == NULL)   // ptrProfiloAttuale punta all'ultimo profilo
+    {                                           // può accadere costantemente
+        mostraListaProfili(display, true,
+                        ptrProfiloAttuale->nome,
+                        ptrProfiloAttuale->pre->nome,
+                        "  --");
+    }
+    else
+    {
+        mostraListaProfili(display, true,
+                            ptrProfiloAttuale->nome,
+                            ptrProfiloAttuale->pre->nome,
+                            ptrProfiloAttuale->next->nome);
+    }
 }
 
 void runProfilo(uint8_t pompa) {
@@ -632,6 +694,8 @@ void runProfilo(uint8_t pompa) {
 
     delay(100);
 */
+
+    resetFlagsUI();
 }
 
 uint8_t menuWiFi() {

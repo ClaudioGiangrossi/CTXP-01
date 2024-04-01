@@ -31,6 +31,7 @@ void mostraRunSteady(WROVER_KIT_LCD, uint8_t velocita);
 void aggiornaVelocitaMostrata(WROVER_KIT_LCD, uint8_t velocita);
 void aggiornaStatoSteady(WROVER_KIT_LCD, uint8_t stato);
 
+void mostraListaProfili(WROVER_KIT_LCD, bool clearScreen, String, String, String);
 
 void infoWiFi();
 
