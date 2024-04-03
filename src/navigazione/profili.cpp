@@ -2,16 +2,6 @@
 
 /* ELEMENTI DEL DATABASE */
 
-uint32_t profiliDatabase = 3;
-
-profilo_t head = {
-        "head",
-        1,
-        NULL,
-        NULL,
-        {0}
-    };
-
 profilo_t sinusoide = {
     "Sinusoide",
     1000,

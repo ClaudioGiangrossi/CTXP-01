@@ -27,6 +27,8 @@ uint16_t        w_boxDestro = 185;
 uint16_t        h_boxDestro = 164;
 GFXcanvas16     canvasBoxDestro(w_boxDestro, h_boxDestro);
 
+
+
 void mostraSchermataIniziale(WROVER_KIT_LCD d){   //short for display
     
     d.drawBitmap(0, 0, STARTIMAGE_WIDTH, STARTIMAGE_HEIGHT, startImage);
@@ -751,4 +753,82 @@ void mostraListaProfili(WROVER_KIT_LCD d, bool clearScreen, String attuale, Stri
     d.drawBitmap(x_boxDestro, y_boxDestro, canvasBoxDestro.width(), canvasBoxDestro.height(), 
                     canvasBoxDestro.getBuffer());
 
+}
+
+void mostraNomeProfilo(WROVER_KIT_LCD d, String nome) {
+    int16_t x = 20;
+    int16_t y = 32;
+    d.setFont(&FreeSansBold18pt7b);
+    d.setTextColor(CELESTINO);
+    d.setCursor(x, y);
+    d.print(nome);
+}
+
+
+
+void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit, 
+                         uint8_t BPM, float gain, float offset, bool stopState) {
+    
+    enum casoStato {statoBPM, statoGain, statoOffset, stop, tutto};
+
+    uint16_t    x_offset = 20;
+    uint16_t    x_statusInfo = x_offset + 10;
+
+    // TODO creare un canvas per lo stopState
+
+    /* display del blocco di stato */
+    GFXcanvas16 canvasStatus(200, 110);
+    canvasStatus.setFont(&FreeSans12pt7b);
+    canvasStatus.setTextColor(GREY);
+
+    if (caso == tutto)
+    {
+        canvasStatus.setCursor(x_statusInfo, 40);
+        canvasStatus.printf("BPM: %u", BPM);
+        canvasStatus.setCursor(x_statusInfo, 70);
+        canvasStatus.printf("GAIN: %0.1f", gain);
+        canvasStatus.setCursor(x_statusInfo, 100);
+        canvasStatus.printf("OFFSET: %0.0f", offset);
+    }
+
+    /* evidenzio l'opzione che voglio editare */
+    if  (!edit)
+    {
+        canvasStatus.setTextColor(WHITE);
+        switch (caso)
+            {
+            case stop:
+                // TODO
+                break;
+
+            case statoBPM:
+                canvasStatus.setCursor(x_statusInfo, 40);
+                canvasStatus.printf("BPM: %u", BPM);
+                break;
+
+            case statoGain:
+                canvasStatus.setCursor(x_statusInfo, 70);
+                canvasStatus.printf("GAIN: %0.1f", gain);
+                break;
+
+            case statoOffset:
+                canvasStatus.setCursor(x_statusInfo, 100);
+                canvasStatus.printf("OFFSET: %0.0f", offset);
+                break;
+
+            default:
+                break;
+            }
+    }
+
+    /* disegno il canvas sul display */
+    d.drawBitmap(x_offset, 40, canvasStatus.width(), canvasStatus.height(), canvasStatus.getBuffer());
+
+}
+
+void mostraWaveformProfilo(WROVER_KIT_LCD d) {
+    uint16_t    x_offset = 20;
+    GFXcanvas16 canvasWaveform(280, 70);
+    canvasWaveform.fillScreen(GREY);
+    d.drawBitmap(x_offset, 160, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
 }

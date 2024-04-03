@@ -7,7 +7,7 @@ bool uiTimerEnable();
 bool uiTimerDisable();
 void uiRead();
 
-bool outputTimerEnable();
+bool outputTimerEnable(uint64_t ticks);
 bool outputTimerDisable();
 void outputCampione();
 

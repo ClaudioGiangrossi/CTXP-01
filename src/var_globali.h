@@ -48,8 +48,8 @@ extern hw_timer_t   *outputTimer;
 extern hw_timer_t   *uiTimer;
 
 /* TIMER VARIABLES */
-extern uint16_t     preScaler; // se = 80 allora setta Ton = ticks * us
-extern uint64_t     ticks;
-extern bool         outputTimerFlag;
-
+extern uint16_t            preScaler; // se = 80 allora setta Ton = ticks * us
+extern uint64_t            ticks;
+extern volatile bool       outputTimerFlag;
+extern volatile bool       uiTimerFlag;
 #endif

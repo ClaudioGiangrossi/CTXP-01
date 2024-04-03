@@ -33,6 +33,11 @@ void aggiornaStatoSteady(WROVER_KIT_LCD, uint8_t stato);
 
 void mostraListaProfili(WROVER_KIT_LCD, bool clearScreen, String, String, String);
 
+void mostraNomeProfilo(WROVER_KIT_LCD, String nome);
+void mostraStatusProfilo(WROVER_KIT_LCD, uint8_t caso, bool edit,
+                         uint8_t BPM, float gain, float offset, bool stopState);
+void mostraWaveformProfilo(WROVER_KIT_LCD);
+
 void infoWiFi();
 
 

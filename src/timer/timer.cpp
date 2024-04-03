@@ -3,13 +3,13 @@
 #include "pin_defs.h"
 
 /* TIMER DEFINITIONS */
-hw_timer_t      *outputTimer = NULL;
-hw_timer_t      *uiTimer = NULL;
-uint16_t        preScaler = 80;      // Ton = ticks * us
-uint64_t        outputTicks = 1000;
-uint64_t        UIticks = 10000;
-uint64_t        ms_100 = 100*1000;
-bool            outputTimerFlag = false;
+hw_timer_t          *outputTimer = NULL;
+hw_timer_t          *uiTimer = NULL;
+uint16_t            preScaler = 80;      // Ton = ticks * us
+uint64_t            outputTicks = 1000;
+uint64_t            UIticks = 10000;
+volatile bool       outputTimerFlag = false;
+volatile bool       uiTimerFlag = false;
 
 
 
@@ -28,10 +28,10 @@ bool uiTimerDisable() {
     return true;
 }
 
-bool outputTimerEnable() {
+bool outputTimerEnable(uint64_t ticks) {
     outputTimer = timerBegin(2, preScaler, true);
     timerAttachInterrupt(outputTimer, &outputCampione, true);
-    timerAlarmWrite(outputTimer, outputTicks, true);
+    timerAlarmWrite(outputTimer, ticks, true);
     timerAlarmEnable(outputTimer);
     return true;
 }
@@ -55,6 +55,8 @@ void IRAM_ATTR uiRead() {
     {
         button2Pressed = true;
     }
+
+    uiTimerFlag = true;
 }
 
 void IRAM_ATTR readEncoderA() {
