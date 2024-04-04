@@ -18,6 +18,7 @@ void setup() {
 
   Serial.begin(115200);
 
+  /* setup GPIO */
   pinMode(encoderPinA, INPUT_PULLUP);
   pinMode(encoderPinB, INPUT_PULLUP);
   pinMode(pushButton1, INPUT);
@@ -25,13 +26,18 @@ void setup() {
   pinMode(ALARM_INPUT, INPUT);
   pinMode(TACHO_INPUT, INPUT);
   pinMode(ROTATION_OUT, OUTPUT);
-  pinMode(DAC, OUTPUT);
+  //pinMode(DAC, OUTPUT);
   pinMode(STOP_OUT, OUTPUT); // 0 start, 1 stop
 
+  /* init timer UI */
   uiTimerEnable();
   attachInterrupt(digitalPinToInterrupt(encoderPinA), readEncoderA, FALLING);
   attachInterrupt(digitalPinToInterrupt(encoderPinB), readEncoderB, FALLING);
 
+  /* config DAC */
+  init_DAC();
+
+  /* carico ultimo stato */
   pompaSelezionata = chiediPompa();
   velocitaDefault = chiediVelocitaDefault();
   ultimoProfiloCaricato = chiediProfiloCaricato();

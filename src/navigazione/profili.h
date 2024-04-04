@@ -23,5 +23,7 @@ bool          caricaProfiliUtente(profilo_t *database); // TODO quelli salvati i
 profilo_t*    caricaDatabase(profilo_t*);
 profilo_t*    cercaProfilo(profilo_t *ptrNavigazione, String nomeProfilo);
 void          visualizzaDatabase(profilo_t*);
+bool          setupBuffer(profilo_t * ptrProfilo, float gain, float offset);
+
 
 #endif

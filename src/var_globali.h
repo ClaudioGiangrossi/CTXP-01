@@ -5,6 +5,9 @@
 #include <Preferences.h>
 #include <WROVER_KIT_LCD.h>
 #include <assert.h>
+#include "driver/dac_common.h"
+
+
 // #include <WiFi.h>    commentata per non compilarla ogni volta, da sviluppare ancora wifi
 
 // #define NDEBUG
@@ -47,9 +50,16 @@ extern volatile bool        button2Pressed;
 extern hw_timer_t   *outputTimer;
 extern hw_timer_t   *uiTimer;
 
-/* TIMER VARIABLES */
+/* UI TIMER VARIABLES */
+extern volatile bool       uiTimerFlag;
+
+/* DAC OUTPUT TIMER VARIABLES */
 extern uint16_t            preScaler; // se = 80 allora setta Ton = ticks * us
 extern uint64_t            ticks;
 extern volatile bool       outputTimerFlag;
-extern volatile bool       uiTimerFlag;
+extern dac_channel_t       dac;
+extern uint8_t*            ptrBuffer;
+extern uint16_t            bufferSize;
+extern uint16_t            indexBuffer;
+
 #endif

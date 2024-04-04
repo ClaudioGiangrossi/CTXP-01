@@ -7,6 +7,7 @@
 #include "var_globali.h"
 #include "pin_defs.h"
 
+
 WROVER_KIT_LCD      display;
 
 /* DICHIARAZIONE VARIABILI DI NAVIGAZIONE*/
@@ -27,6 +28,12 @@ void schermataIniziale() {
     display.begin();
     display.setRotation(1); // landscape, 3 = USB bottom right, 1 = USB upper left
     mostraSchermataIniziale(display);
+}
+
+bool init_DAC() {
+    dac_output_enable(dac);
+    dac_output_voltage(dac, 0);
+    return true;
 }
 
 uint8_t selezioneMenu() {
@@ -197,7 +204,7 @@ void runSteady(uint8_t pompa) {
     uint8_t         stopState = false;
 
     setPinRotazione();
-    dacWrite(DAC, velocita);
+    dac_output_voltage(dac, velocita);
     digitalWrite(STOP_OUT, stopState);
 
     mostraRunSteady(display, velocita);
@@ -209,11 +216,11 @@ void runSteady(uint8_t pompa) {
         {
             if ((posizioneEncoder == destra) && (velocita < 255))
             {
-                dacWrite(DAC, ++velocita);
+                dac_output_voltage(dac, ++velocita);
             }
             else if (posizioneEncoder == sinistra && (velocita > 0))
             {
-                dacWrite(DAC, --velocita);
+                dac_output_voltage(dac, --velocita);
             }
 
             posizioneEncoder = fermo;
@@ -252,7 +259,7 @@ void runSteady(uint8_t pompa) {
                 {
                     Serial.println(datoRicevuto);
                     velocita = datoRicevuto;
-                    dacWrite(DAC, velocita);
+                    dac_output_voltage(dac, velocita);
                     aggiornaVelocitaMostrata(display, velocita);
                 }
             }
@@ -264,7 +271,7 @@ void runSteady(uint8_t pompa) {
         while (velocita > 0)
         {
             button2Pressed = false;
-            dacWrite(DAC, --velocita);
+            dac_output_voltage(dac, --velocita);
             delay(1);
         }
     }
@@ -457,10 +464,6 @@ uint8_t menuProfilo() {
 
         }
 
-        #ifndef NDEBUG
-        Serial.printf("%u, %u \n", button1Pressed, button2Pressed);
-        #endif
-
         posizioneEncoder = fermo;
         delay(80);
 
@@ -476,22 +479,25 @@ uint8_t menuProfilo() {
     {
         button1Pressed = false;
 
-        if (selezione == 1)
+        if (selezione == sceltaProfilo)
         {
             if (selezioneProfilo((void*) ptrDatabase))
             {
-                profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, ultimoProfiloCaricato);
-                runProfilo(pompa, (void*) profiloSelezionato);
-                mostraMenu(display);
+                return profilo;
+            }
+            else
+            {
+                Serial.println("[ERRORE] in selezioneProfilo");
+                return menu;
             }
         }
-        else if (selezione == 0)
+        else if (selezione == run)
         {
             profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, ultimoProfiloCaricato);
             runProfilo(pompa, (void*) profiloSelezionato);
             mostraMenu(display);
         }
-        else if (selezione == 2)
+        else if (selezione == rotazione)
         {
             sensoRotazione(pompa);
         }
@@ -525,11 +531,6 @@ bool selezioneProfilo(void *ptrDatabase_) {
     /* Display della lista */
     listaProfili(profiloSelezionato);
 
-    #ifndef NDEBUG
-    Serial.printf("%u, %u \n", button1Pressed, button2Pressed);
-    Serial.println("---------------------------------------");
-    #endif
-
     delay(500);
     resetFlagsUI();
 
@@ -557,10 +558,6 @@ bool selezioneProfilo(void *ptrDatabase_) {
             {
                 listaProfili(profiloSelezionato);
             }
-
-            #ifndef NDEBUG
-            Serial.printf("%u, %u \n", button1Pressed, button2Pressed);
-            #endif
 
             posizioneEncoder = fermo;
             delay(250);
@@ -622,94 +619,89 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     
     /* ------------------SETUP------------------ */
 
-    const uint64_t        ticksNumeratore = 60 * 1000000;           // ticks = (10^6 * 60) / (samples * BPM);
-    const profilo_t *     ptrProfilo = (profilo_t*) ptrProfilo_;    // cast necessario perché sono scarso
+    const uint64_t        ticksNumeratore = 60 * 1000000;           // ticks = (60 * 10^6) / (samples * BPM);
+    profilo_t *     ptrProfilo = (profilo_t*) ptrProfilo_;    // cast necessario perché sono scarso
     enum casoStato        {statoBPM, statoGain, statoOffset, stop, tutto};
 
     /* Init variabili */
     bool            stopState = true;           // ? stop di default
-    uint8_t         BPM = 60;                   // ? range: 40, 100
+    uint8_t         BPM = 60;                   // ? range: 30, 120
     float           gain = 1;                   // ? range: 0.1, 10
     float           offset = 0;                 // ? range: -126, 127
-    uint8_t         outputValue = 0;
+    float           outputValue = 0;
+    uint8_t         outputValue_8bit = 0;
     uint16_t        sample = 0;
-    uint64_t        ticks;
-    uint64_t        ticksDenominatore = (uint64_t) ptrProfilo->size * (uint64_t) BPM;
     uint8_t         selezioneSottomenu = 0;
+    uint64_t        ticks;
+    uint64_t        ticksDenominatore = ((uint64_t) ptrProfilo->size) * ((uint64_t) BPM);
 
-    /* Init output timer */
-    ticks = ticksNumeratore / ticksDenominatore;
-    
-    if (!outputTimerEnable(ticks))
-        {
-            Serial.println("ERRORE in outputTimerEnable in runProfilo");
-            return;
-        }
+    /* alloca buffer dei campioni in output */
+    if (setupBuffer(ptrProfilo, gain, offset) == false)
+    {
+        return;
+    }
 
     /* Aggiorna il display, mostra il menu e la forma d'onda */
     display.fillScreen(WROVER_BLACK);
     mostraNomeProfilo(display, ptrProfilo->nome);
     mostraStatusProfilo(display, tutto, false, BPM, gain, offset, stopState);
     
-    selezioneSottomenu = statoBPM;
-    mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
+    //selezioneSottomenu = statoBPM;
+    //mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
 
-    mostraWaveformProfilo(display); // TODO
+    mostraWaveformProfilo(display); // TODO farla funzionare
 
+
+    /* Init output timer */
+    ticks = ticksNumeratore / ticksDenominatore;
+    
+    if (!outputTimerEnable(ticks))
+    {
+        Serial.println("ERRORE in outputTimerEnable in runProfilo");
+        return;
+    }
+    
     resetFlagsUI();
-
     
     /* ------------------LOOP------------------ */
 
-    while(button2Pressed == false) {
+    while(button2Pressed == false) 
+    {
 
-        /* OUTPUT TIMER CALLBACK */
-        if (outputTimerFlag)
-        {
-            outputValue  = (uint8_t) (((float)ptrProfilo->campioni[sample++] * gain) + offset);
-            dacWrite(DAC, outputValue);
-            if(sample >= ptrProfilo->size)
-            {
-                sample = 0;
-            }
-
-            #ifndef NDEBUG
-            outputValue = outputValue * 100 / 256;
-            for (uint8_t i = 0; i < outputValue; i++)
-            {
-                Serial.print(" ");
-            }
-            Serial.print("* \n");
-            #endif
-        }
-
-        /* scorrimento del sottomenu */
-        if ((uiTimerFlag) && (posizioneEncoder != fermo))
+    
+        if (posizioneEncoder != fermo)
         {
             if ((posizioneEncoder == sinistra) && (selezioneSottomenu > statoBPM))
             {
                 selezioneSottomenu--;
             }
-            else if ((posizioneEncoder == destra) && (selezioneSottomenu < stop))
+            else if ((posizioneEncoder == destra) && (selezioneSottomenu < statoOffset))
             {
                 selezioneSottomenu++;
             }
-            
+
             mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
             posizioneEncoder = fermo;
+            delay(200);
         }
 
         if (button1Pressed)
         {
+            // switch
             button1Pressed = false;
             mostraStatusProfilo(display, selezioneSottomenu, true, BPM, gain, offset, stopState);
-            // TODO
+            delay(2000);
+            mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
         }
-
-
-
     }
 
+    /* ------------------ FINE LOOP------------------ */
+
+    outputTimerDisable();
+    dac_output_voltage(dac, 0);
+    //dac_output_disable(dac);
+
+    return;
 }
 
 uint8_t menuWiFi() {

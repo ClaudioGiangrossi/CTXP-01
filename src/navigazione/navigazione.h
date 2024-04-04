@@ -6,6 +6,7 @@
 
 void resetFlagsUI();
 void schermataIniziale();
+bool init_DAC();
 
 uint8_t selezioneMenu();
 uint8_t selezionePompa();

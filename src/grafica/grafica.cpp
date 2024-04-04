@@ -19,15 +19,12 @@
 #define GREY WROVER_DARKGREY
 
 
-GFXcanvas16     canvasVelocita(200, 85);     // secondo buffer per ridurre il flickering
 
 uint16_t        x_boxDestro = 122;
 uint16_t        y_boxDestro = 14;
 uint16_t        w_boxDestro = 185;
 uint16_t        h_boxDestro = 164;
 GFXcanvas16     canvasBoxDestro(w_boxDestro, h_boxDestro);
-
-
 
 void mostraSchermataIniziale(WROVER_KIT_LCD d){   //short for display
     
@@ -412,6 +409,9 @@ void mostraVelocitaSelezionata(WROVER_KIT_LCD d, uint8_t velocita, bool clearScr
 }
 
 void aggiornaVelocitaMostrata(WROVER_KIT_LCD d, uint8_t velocita) {
+    
+    GFXcanvas16     canvasVelocita(200, 85);
+
     canvasVelocita.setFont(&FreeSansBold18pt7b);
     canvasVelocita.fillScreen(BLACK);
     canvasVelocita.setTextSize(2);
@@ -422,15 +422,6 @@ void aggiornaVelocitaMostrata(WROVER_KIT_LCD d, uint8_t velocita) {
 
     d.drawBitmap(95, 91, canvasVelocita.width(), canvasVelocita.height(), 
                     canvasVelocita.getBuffer());
-/*
-    d.setFont(&FreeSansBold18pt7b);
-    d.fillRect(95, 91, 200, 85, BLACK);
-    d.setTextSize(2);
-    d.setCursor(100, 151);
-    d.setTextColor(WHITE);
-    d.print(velocita * 100 / 255);
-    d.print("%");
-*/
 }
 
 void aggiornaStatoSteady(WROVER_KIT_LCD d, uint8_t stato) {
@@ -693,7 +684,7 @@ void disegnaCursore(WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t colore) {
 }
 
 void disegnaCursorePiccolo (WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t colore) {
-    d.drawLine(X + 0, Y + 0,  X + 0, Y + 15, colore);
+/*    d.drawLine(X + 0, Y + 0,  X + 0, Y + 15, colore);
     d.drawLine(X + 0, Y + 0,  X + 13, Y + 6, colore);
     d.drawLine(X + 1, Y + 15, X + 12, Y + 9, colore);
     d.drawPixel(X + 13, Y + 9, colore);
@@ -713,6 +704,11 @@ void disegnaCursorePiccolo (WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t col
     d.drawRect(X + 12, Y + 7, 2, 2, colore);
     d.drawPixel(X + 14, Y + 7, colore);
     d.drawPixel(X + 14, Y + 8, colore);
+*/
+    GFXcanvas16 c(27, 25);
+    c.drawBitmap(X, Y, cursore_grandino, 27, 25, colore);
+
+    d.drawBitmap(X, Y, c.width(), c.height(), c.getBuffer());
 }
 
 void mostraListaProfili(WROVER_KIT_LCD d, bool clearScreen, String attuale, String pre, String next) {
@@ -769,36 +765,67 @@ void mostraNomeProfilo(WROVER_KIT_LCD d, String nome) {
 void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit, 
                          uint8_t BPM, float gain, float offset, bool stopState) {
     
+    GFXcanvas16     canvasStatus(200, 110);
+
     enum casoStato {statoBPM, statoGain, statoOffset, stop, tutto};
 
     uint16_t    x_offset = 20;
     uint16_t    x_statusInfo = x_offset + 10;
 
-    // TODO creare un canvas per lo stopState
-
-    /* display del blocco di stato */
-    GFXcanvas16 canvasStatus(200, 110);
     canvasStatus.setFont(&FreeSans12pt7b);
     canvasStatus.setTextColor(GREY);
 
-    if (caso == tutto)
-    {
-        canvasStatus.setCursor(x_statusInfo, 40);
-        canvasStatus.printf("BPM: %u", BPM);
-        canvasStatus.setCursor(x_statusInfo, 70);
-        canvasStatus.printf("GAIN: %0.1f", gain);
-        canvasStatus.setCursor(x_statusInfo, 100);
-        canvasStatus.printf("OFFSET: %0.0f", offset);
-    }
+    /* display del blocco di stato */
+    canvasStatus.setCursor(x_statusInfo, 40);
+    canvasStatus.printf("BPM: %u", BPM);
+    canvasStatus.setCursor(x_statusInfo, 69);
+    canvasStatus.printf("GAIN: %0.1f", gain);
+    canvasStatus.setCursor(x_statusInfo, 100);
+    canvasStatus.printf("OFFSET: %0.0f", offset);
+    // mostraStatusStop(d, statoStop, GREY);
 
-    /* evidenzio l'opzione che voglio editare */
+
+    // evidenzio l'opzione che voglio editare 
     if  (!edit)
     {
         canvasStatus.setTextColor(WHITE);
         switch (caso)
             {
             case stop:
-                // TODO
+                // mostraStatusStop(d, statoStop, WHITE);
+                break;
+
+            case statoBPM:
+                canvasStatus.drawBitmap(x_statusInfo - 20, 40 - 14, cursore_freccia, 15, 14, WHITE);
+                canvasStatus.setCursor(x_statusInfo, 40);
+                canvasStatus.printf("BPM: %u", BPM);
+                break;
+
+            case statoGain:
+                canvasStatus.drawBitmap(x_statusInfo - 20, 70 - 14, cursore_freccia, 15, 14, WHITE);
+                canvasStatus.setCursor(x_statusInfo, 70);
+                canvasStatus.printf("GAIN: %0.1f", gain);
+                break;
+
+            case statoOffset:
+                canvasStatus.drawBitmap(x_statusInfo - 20, 100 - 14, cursore_freccia, 15, 14, WHITE);
+                canvasStatus.setCursor(x_statusInfo, 100);
+                canvasStatus.printf("OFFSET: %0.0f", offset);
+                break;
+
+            default:
+                break;
+            }
+    }
+
+    if(edit)
+    {
+        canvasStatus.fillScreen(BLACK);
+        canvasStatus.setTextColor(RED);
+        switch (caso)
+            {
+            case stop:
+                // mostraStatusStop(d, statoStop, RED);
                 break;
 
             case statoBPM:
@@ -821,14 +848,69 @@ void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit,
             }
     }
 
-    /* disegno il canvas sul display */
+    /* disegno i canvas sul display */
     d.drawBitmap(x_offset, 40, canvasStatus.width(), canvasStatus.height(), canvasStatus.getBuffer());
-
 }
 
 void mostraWaveformProfilo(WROVER_KIT_LCD d) {
+
     uint16_t    x_offset = 20;
-    GFXcanvas16 canvasWaveform(280, 70);
+    uint16_t    x_canvas = 280;
+    uint16_t    y_canvas = 70;
+
+    GFXcanvas16 canvasWaveform(x_canvas, y_canvas);
     canvasWaveform.fillScreen(GREY);
+
+    uint16_t y_top = y_canvas - 10;
+    uint16_t y_bottom = 10;
+
+    if (bufferSize < 2)
+    {
+        return;         // non ho niente da mostrare, non ho neanche 2 punti
+    }
+
+    uint16_t prima_x = 0;          
+    uint16_t prima_y = ((*(ptrBuffer + 0) * 255) / (y_canvas - 20)) + 10;     
+    uint16_t dopo_x = 0;        
+    uint16_t dopo_y = 0;
+
+    /** 
+     * pos_Y (px) = output_8bit * 255 / y_canvas - 20
+     * punto prima, prossimo punto
+     * writeLine
+     * prima = prossimo
+     * calcola prossimo punto
+     * ripeti fino a che index > sizeBuffer
+     **/
+
+    for (uint16_t i = 0; i < bufferSize - 1; i++)
+    {
+        dopo_x = (i + 1) * bufferSize / x_canvas;           
+        dopo_y = ((*(ptrBuffer + i + 1) * 255) / (y_canvas - 20)) + 10;
+        canvasWaveform.writeLine(prima_x, prima_y, dopo_x, dopo_y, WHITE);
+        prima_x = dopo_x;
+        prima_y = dopo_y;
+    }
+
     d.drawBitmap(x_offset, 160, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
+}
+
+void mostraStatusStop(WROVER_KIT_LCD d, bool stopState, uint16_t colore) {
+
+    GFXcanvas16     canvasStop(100, 25);
+
+    canvasStop.setFont(&FreeSans9pt7b);
+    canvasStop.setTextColor(colore);
+
+    canvasStop.setCursor(0, 20);
+    if (stopState == true)
+    {
+        canvasStop.print("  STOP");
+    }
+    else
+    {
+        canvasStop.print("RUNNING");
+    }
+
+    d.drawBitmap(190, 140, canvasStop.width(), canvasStop.height(), canvasStop.getBuffer());
 }

@@ -2,21 +2,32 @@
 #include "var_globali.h"
 #include "pin_defs.h"
 
+
 /* TIMER DEFINITIONS */
 hw_timer_t          *outputTimer = NULL;
 hw_timer_t          *uiTimer = NULL;
-uint16_t            preScaler = 80;      // Ton = ticks * us
-uint64_t            outputTicks = 1000;
-uint64_t            UIticks = 10000;
+
+/** 
+ * timer_ticks = source clock / prescaler 
+ * By default, the source clock is APB clock running at 80 MHz (from timer.h)
+ * timer_ticks è la velocità dell'incremento del contatore dei ticks 
+ * timerAlarmWrite() genera un interrupt dopo N ticks 
+**/
+
+uint16_t            preScaler = 80;           // allora timer_ticks = 1MHz, T_interrupt = ticks * us
+uint64_t            uiTicks = 10000;          // T_interrupt = 10 ms
+dac_channel_t       dac = DAC_CHANNEL_2;      // DAC PIN 26
+uint8_t*            ptrBuffer = NULL;
+uint16_t            bufferSize = 0;
+uint16_t            indexBuffer = 0;
+
 volatile bool       outputTimerFlag = false;
 volatile bool       uiTimerFlag = false;
-
-
 
 bool uiTimerEnable() {
     uiTimer = timerBegin(0, preScaler, true);
     timerAttachInterrupt(uiTimer, &uiRead, true);
-    timerAlarmWrite(uiTimer, UIticks, true);
+    timerAlarmWrite(uiTimer, uiTicks, true);
     timerAlarmEnable(uiTimer);
     return true;
 }
@@ -86,5 +97,9 @@ void IRAM_ATTR readEncoderB() {
 
 
 void IRAM_ATTR outputCampione() {
-    outputTimerFlag = true;
+    dac_output_voltage(dac, *(ptrBuffer + indexBuffer));
+    if ((++indexBuffer) >= bufferSize)
+    {
+        indexBuffer = 0;
+    }
 }
