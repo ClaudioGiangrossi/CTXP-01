@@ -196,12 +196,17 @@ uint8_t menuSteady() {
 }
 
 void runSteady(uint8_t pompa) {
+
     uint8_t         velocita = velocitaDefault;
     uint64_t        ultimoAggiornamento = millis();
     uint64_t        lastSerialRequest = millis();
     uint64_t        intervalloAggiornamento = 5000; // ms
     uint64_t        serialRequestTime = 1000; // ms
-    uint8_t         stopState = false;
+    uint8_t         stopState = true;
+
+    uint64_t        lastRotellina = millis();
+    uint64_t        tempo_refresh = 500 + (1500 * velocita / 255);
+    bool            giro = false;
 
     setPinRotazione();
     dac_output_voltage(dac, velocita);
@@ -210,8 +215,14 @@ void runSteady(uint8_t pompa) {
     mostraRunSteady(display, velocita);
     Serial.println("Valori validi di velocità: da 0 a 255.");
 
-    while ((faultSVILUPPO(pompa) == false) && (button2Pressed == false))
+    /* icona del senso di rotazione */
+    giraRotellina(display, true);
+
+    resetFlagsUI();
+
+    while (button2Pressed == false)
     {
+        /* modifica della velocita */
         if (posizioneEncoder != fermo)
         {
             if ((posizioneEncoder == destra) && (velocita < 255))
@@ -225,31 +236,9 @@ void runSteady(uint8_t pompa) {
 
             posizioneEncoder = fermo;
             aggiornaVelocitaMostrata(display, velocita);
-
-            #ifndef NDEBUG
-            Serial.printf("\nVelocita: %u", velocita);
-            #endif
         }
 
-        if (button1Pressed == true)
-        {
-            if (digitalRead(pushButton1) == HIGH)   // controllo se ho già rilasciato il pushbutton
-            {
-                button1Pressed = false;
-                stopState = !stopState;
-                digitalWrite(STOP_OUT, stopState);
-                aggiornaStatoSteady(display, stopState);
-            }
-        }
-/*
-        if ((millis() - ultimoAggiornamento) > intervalloAggiornamento)
-        {
-            aggiornamentoDati(pompa);
-            ultimoAggiornamento = millis();
-            // displayDati();
-        }
-*/
-
+        // posso anche cambiare la velocità da seriale 
         if (millis() - lastSerialRequest > serialRequestTime)
         {
             if (Serial.available() > 0)
@@ -264,16 +253,43 @@ void runSteady(uint8_t pompa) {
                 }
             }
         }
+
+
+        /* cambia stato, RUN oppure STOP */
+        if (button1Pressed == true)
+        {
+            if (digitalRead(pushButton1) == HIGH)   // controllo se ho già rilasciato il pushbutton
+            {
+                button1Pressed = false;
+                stopState = !stopState;
+                digitalWrite(STOP_OUT, stopState);
+                aggiornaStatoSteady(display, stopState);
+            }
+        }
+
+        /* icona del senso di rotazione */
+        if ( (stopState == true) && ((millis() - lastRotellina) > tempo_refresh))
+        {
+            giraRotellina(display, giro);
+            giro = !giro;
+            tempo_refresh = 200 + (1500 * (255 - velocita) / 255);
+            lastRotellina = millis();
+        }
+
+        /*
+        if ((millis() - ultimoAggiornamento) > intervalloAggiornamento)
+        {
+            aggiornamentoDati(pompa);
+            ultimoAggiornamento = millis();
+            // displayDati();
+        }
+        */
+
     }
 
     if (button2Pressed == true)
     {
-        while (velocita > 0)
-        {
-            button2Pressed = false;
-            dac_output_voltage(dac, --velocita);
-            delay(1);
-        }
+        dac_output_voltage(dac, 0);
     }
 
 }
@@ -620,12 +636,12 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     /* ------------------SETUP------------------ */
 
     const uint64_t        ticksNumeratore = 60 * 1000000;           // ticks = (60 * 10^6) / (samples * BPM);
-    profilo_t *     ptrProfilo = (profilo_t*) ptrProfilo_;    // cast necessario perché sono scarso
+    profilo_t *           ptrProfilo = (profilo_t*) ptrProfilo_;    // cast necessario perché sono scarso
     enum casoStato        {statoBPM, statoGain, statoOffset, stop, tutto};
 
     /* Init variabili */
     bool            stopState = true;           // ? stop di default
-    uint8_t         BPM = 60;                   // ? range: 30, 120
+    uint8_t         BPM = 60;                   // range: 10, 240
     float           gain = 1;                   // ? range: 0.1, 10
     float           offset = 0;                 // ? range: -126, 127
     float           outputValue = 0;
@@ -641,13 +657,18 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
         return;
     }
 
+    /* imposta la rotazione a seconda della pompa */
+    setPinRotazione();
+
+    // TODO capire cosa fare con lo stop
+
     /* Aggiorna il display, mostra il menu e la forma d'onda */
     display.fillScreen(WROVER_BLACK);
     mostraNomeProfilo(display, ptrProfilo->nome);
     mostraStatusProfilo(display, tutto, false, BPM, gain, offset, stopState);
+    selezioneSottomenu = statoBPM;
+    mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
     
-    //selezioneSottomenu = statoBPM;
-    //mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
 
     mostraWaveformProfilo(display); // TODO farla funzionare
 
@@ -687,11 +708,131 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
         if (button1Pressed)
         {
-            // switch
-            button1Pressed = false;
             mostraStatusProfilo(display, selezioneSottomenu, true, BPM, gain, offset, stopState);
-            delay(2000);
+            delay(1000);
+            resetFlagsUI();
+
+            uint8_t BPM_modifica = BPM;
+            float gain_modifica = gain;
+            float offset_modifica = offset;
+
+            switch (selezioneSottomenu)
+            {
+                case statoBPM:
+                    while (!button1Pressed && !button2Pressed)
+                    {
+                        if (posizioneEncoder == sinistra)
+                        {
+                            if (BPM_modifica > 10)
+                                --BPM_modifica;
+                        }
+                        else if (posizioneEncoder == destra)
+                        {
+                            if (BPM_modifica < 240)
+                                ++BPM_modifica;
+                        }
+                        posizioneEncoder = fermo;
+                        mostraStatusProfilo(display, selezioneSottomenu, true, BPM_modifica, gain, offset, stopState);
+                        delay(80);
+                    }
+
+                    if (button2Pressed)
+                        break;
+
+                    /* se sono nel range, modifico BPM */
+                    if (button1Pressed)
+                    {
+                        if ((BPM_modifica > 9) && (BPM_modifica < 241)) // ? controllo ridondante
+                            BPM = BPM_modifica;
+                    }
+
+                    break;
+
+                case statoGain:
+                    while (!button1Pressed && !button2Pressed)
+                    {
+                        if (posizioneEncoder == sinistra)
+                        {
+                            if ((gain_modifica > 0.1) && (gain_modifica <= 1))
+                                gain_modifica -= 0.1;
+                            else if ((gain_modifica > 1) && (gain_modifica <= 10))
+                                gain_modifica--;
+                        }
+                        else if (posizioneEncoder == destra)
+                        {
+                            if ((gain_modifica < 1) && (gain_modifica > 0) )
+                                gain_modifica += 0.1;
+                            else if ((gain_modifica >= 1) && (gain_modifica < 10))
+                                gain_modifica++;
+                        }
+
+                        posizioneEncoder = fermo;
+                        mostraStatusProfilo(display, selezioneSottomenu, true, BPM, gain_modifica, offset, stopState);
+                        delay(80);
+                    }
+
+                    if (button2Pressed)
+                        break;
+
+                    /* se sono nel range, modifico gain */
+                    if (button1Pressed)
+                    {
+                        if ((gain_modifica > 0) && (gain_modifica <= 10)) // ? controllo ridondante
+                            gain = gain_modifica;
+                    }
+
+                    break;
+
+                case statoOffset:
+                    while (!button1Pressed && !button2Pressed)
+                    {
+                        if (posizioneEncoder == sinistra)
+                        {
+                            if (offset_modifica > -126)
+                                offset_modifica--;
+                        }
+                        else if (posizioneEncoder == destra)
+                        {
+                            if (offset_modifica < 127)
+                                offset_modifica++;
+                        }
+
+                        posizioneEncoder = fermo;
+                        mostraStatusProfilo(display, selezioneSottomenu, true, BPM, gain, offset_modifica, stopState);
+                        delay(80);
+                    }
+
+                    if (button2Pressed)
+                        break;
+
+                    /* se sono nel range, modifico BPM */
+                    if (button1Pressed)
+                    {
+                        if ((offset_modifica >= -126) && (offset_modifica <= 127)) // ? controllo ridondante
+                            offset = offset_modifica; 
+                    }
+
+                    break;
+
+                default:
+                    break;
+
+            }
+
+            /* reset output frequency e buffer */
+            if (button1Pressed)
+            {
+                outputTimerDisable();
+                ticksDenominatore = ((uint64_t) ptrProfilo->size) * ((uint64_t) BPM);
+                ticks = ticksNumeratore / ticksDenominatore;
+                setupBuffer(ptrProfilo, gain, offset);
+                outputTimerEnable(ticks);
+            }
+            
+            delay(500);
+            resetFlagsUI();
             mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
+
         }
     }
 

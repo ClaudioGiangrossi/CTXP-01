@@ -460,6 +460,65 @@ void aggiornaStatoSteady(WROVER_KIT_LCD d, uint8_t stato) {
     }
 }
 
+void giraRotellina(WROVER_KIT_LCD d, bool giro) {
+    GFXcanvas16 c(38, 38);
+    
+    if (pompaSelezionata == piccola)
+    {
+        if (rotazione == 0)
+        {
+            if (giro == false)
+            {
+                c.drawBitmap(0, 0, rotellina_oraria, 38, 32, WHITE);
+            }
+            else
+            {
+                c.drawBitmap(0, 0, rotellina_oraria_giro, 32, 38, WHITE);
+            }
+        }
+        else
+        {
+            if (giro == false)
+            {
+                c.drawBitmap(0, 0, rotellina_antior, 38, 32, WHITE);
+            }
+            else
+            {
+                c.drawBitmap(0, 0, rotellina_antior_giro, 32, 38, WHITE);
+            }
+        }
+    }
+    else    // pompa grande
+    {
+        if (rotazione == 1)
+        {
+            if (giro == false)
+            {
+                c.drawBitmap(0, 0, rotellina_oraria, 38, 32, WHITE);
+            }
+            else
+            {
+                c.drawBitmap(0, 0, rotellina_oraria_giro, 32, 38, WHITE);
+            }
+        }
+        else
+        {
+           if (giro == false)
+            {
+                c.drawBitmap(0, 0, rotellina_antior, 38, 32, WHITE);
+            }
+            else
+            {
+                c.drawBitmap(0, 0, rotellina_antior_giro, 32, 38, WHITE);
+            } 
+        }
+    }
+
+    /* fine tutte le casistiche, adesso disegno sul display */
+    d.drawBitmap(250, 17, c.width(), c.height(), c.getBuffer());
+
+}
+
 void mostraSelezioneRotazione(WROVER_KIT_LCD d, uint8_t rotazioneSelezionata, bool clearScreen) {
 
     const uint8_t       rotazioneAntioraria = 0;
@@ -684,7 +743,7 @@ void disegnaCursore(WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t colore) {
 }
 
 void disegnaCursorePiccolo (WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t colore) {
-/*    d.drawLine(X + 0, Y + 0,  X + 0, Y + 15, colore);
+    d.drawLine(X + 0, Y + 0,  X + 0, Y + 15, colore);
     d.drawLine(X + 0, Y + 0,  X + 13, Y + 6, colore);
     d.drawLine(X + 1, Y + 15, X + 12, Y + 9, colore);
     d.drawPixel(X + 13, Y + 9, colore);
@@ -704,11 +763,6 @@ void disegnaCursorePiccolo (WROVER_KIT_LCD d, int16_t X, int16_t Y, uint16_t col
     d.drawRect(X + 12, Y + 7, 2, 2, colore);
     d.drawPixel(X + 14, Y + 7, colore);
     d.drawPixel(X + 14, Y + 8, colore);
-*/
-    GFXcanvas16 c(27, 25);
-    c.drawBitmap(X, Y, cursore_grandino, 27, 25, colore);
-
-    d.drawBitmap(X, Y, c.width(), c.height(), c.getBuffer());
 }
 
 void mostraListaProfili(WROVER_KIT_LCD d, bool clearScreen, String attuale, String pre, String next) {
@@ -781,7 +835,8 @@ void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit,
     canvasStatus.setCursor(x_statusInfo, 69);
     canvasStatus.printf("GAIN: %0.1f", gain);
     canvasStatus.setCursor(x_statusInfo, 100);
-    canvasStatus.printf("OFFSET: %0.0f", offset);
+    canvasStatus.printf("OFFSET: %0.0f", (offset / 127 * 100));
+    canvasStatus.print("%");
     // mostraStatusStop(d, statoStop, GREY);
 
 
@@ -796,21 +851,22 @@ void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit,
                 break;
 
             case statoBPM:
-                canvasStatus.drawBitmap(x_statusInfo - 20, 40 - 14, cursore_freccia, 15, 14, WHITE);
+                canvasStatus.drawBitmap(x_statusInfo - 20, 40 - 14, freccia_spicy, 15, 14, WHITE);
                 canvasStatus.setCursor(x_statusInfo, 40);
                 canvasStatus.printf("BPM: %u", BPM);
                 break;
 
             case statoGain:
-                canvasStatus.drawBitmap(x_statusInfo - 20, 70 - 14, cursore_freccia, 15, 14, WHITE);
+                canvasStatus.drawBitmap(x_statusInfo - 20, 70 - 14, freccia_spicy, 15, 14, WHITE);
                 canvasStatus.setCursor(x_statusInfo, 70);
                 canvasStatus.printf("GAIN: %0.1f", gain);
                 break;
 
             case statoOffset:
-                canvasStatus.drawBitmap(x_statusInfo - 20, 100 - 14, cursore_freccia, 15, 14, WHITE);
+                canvasStatus.drawBitmap(x_statusInfo - 20, 100 - 14, freccia_spicy, 15, 14, WHITE);
                 canvasStatus.setCursor(x_statusInfo, 100);
-                canvasStatus.printf("OFFSET: %0.0f", offset);
+                canvasStatus.printf("OFFSET: %0.0f", (offset / 127 * 100));
+                canvasStatus.print("%");
                 break;
 
             default:
@@ -840,7 +896,8 @@ void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit,
 
             case statoOffset:
                 canvasStatus.setCursor(x_statusInfo, 100);
-                canvasStatus.printf("OFFSET: %0.0f", offset);
+                canvasStatus.printf("OFFSET: %0.0f", (offset / 127 * 100));
+                canvasStatus.print("%");
                 break;
 
             default:
