@@ -510,6 +510,7 @@ uint8_t menuProfilo() {
         else if (selezione == run)
         {
             profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, ultimoProfiloCaricato);
+            delay(300);
             runProfilo(pompa, (void*) profiloSelezionato);
             mostraMenu(display);
         }
@@ -648,6 +649,10 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     uint8_t         outputValue_8bit = 0;
     uint16_t        sample = 0;
     uint8_t         selezioneSottomenu = 0;
+    uint64_t        timerWaveform = (105 - BPM) * 0.66f;
+    uint64_t        ultimaWaveform;
+    uint16_t        waveformStep;
+    uint16_t        stepIncremento = 7;
     uint64_t        ticks;
     uint64_t        ticksDenominatore = ((uint64_t) ptrProfilo->size) * ((uint64_t) BPM);
 
@@ -669,8 +674,9 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     selezioneSottomenu = statoBPM;
     mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
     
-
-    mostraWaveformProfilo(display); // TODO farla funzionare
+    /* waveform */
+    mostraWaveformProfilo(display, 0);
+    ultimaWaveform = millis();
 
 
     /* Init output timer */
@@ -688,8 +694,18 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
     while(button2Pressed == false) 
     {
+        if ((millis() - ultimaWaveform) > timerWaveform)
+        {
+            mostraWaveformProfilo(display, waveformStep);
+            
+            waveformStep = waveformStep + stepIncremento;
+            if (waveformStep > 279)   // ho fatto il giro
+                waveformStep = 0;
+            
+            ultimaWaveform = millis();
+        }
 
-    
+        /* selezione dello status da editare */
         if (posizioneEncoder != fermo)
         {
             if ((posizioneEncoder == sinistra) && (selezioneSottomenu > statoBPM))
@@ -706,6 +722,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
             delay(200);
         }
 
+        /* menu di edit dello status */
         if (button1Pressed)
         {
             mostraStatusProfilo(display, selezioneSottomenu, true, BPM, gain, offset, stopState);
@@ -805,7 +822,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
                     if (button2Pressed)
                         break;
 
-                    /* se sono nel range, modifico BPM */
+                    /* se sono nel range, modifico offset */
                     if (button1Pressed)
                     {
                         if ((offset_modifica >= -126) && (offset_modifica <= 127)) // ? controllo ridondante
@@ -819,7 +836,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
             }
 
-            /* reset output frequency e buffer */
+            /* reset output frequency, buffer e valori di aggiornamneto della waveform */
             if (button1Pressed)
             {
                 outputTimerDisable();
@@ -827,12 +844,19 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
                 ticks = ticksNumeratore / ticksDenominatore;
                 setupBuffer(ptrProfilo, gain, offset);
                 outputTimerEnable(ticks);
+                timerWaveform = impostaIntervalloWaveform(BPM);
+                stepIncremento = impostaStepWaveform(BPM);
+                Serial.print("Timer: ");
+                Serial.println(timerWaveform);
+                Serial.print("Step: ");
+                Serial.println(stepIncremento);
+                Serial.println();
             }
             
             delay(500);
             resetFlagsUI();
             mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
-
+            mostraWaveformProfilo(display, waveformStep);
         }
     }
 
@@ -840,9 +864,34 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
     outputTimerDisable();
     dac_output_voltage(dac, 0);
-    //dac_output_disable(dac);
 
     return;
+}
+
+uint64_t impostaIntervalloWaveform(uint8_t BPM) {
+    
+    if (BPM > 90)
+        return 10;
+    else if (BPM < 30)
+        return 50;
+    else
+        return ((105 - BPM) * 0.66f);
+
+}
+
+uint16_t impostaStepWaveform(uint8_t BPM) {
+    
+    if (BPM < 35)
+        return 1;
+    else if (BPM < 54)
+        return 3;
+    else if (BPM < 74)
+        return 7;
+    else if (BPM < 85)
+        return 9;
+    else
+        return 11;
+    
 }
 
 uint8_t menuWiFi() {

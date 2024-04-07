@@ -909,49 +909,6 @@ void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit,
     d.drawBitmap(x_offset, 40, canvasStatus.width(), canvasStatus.height(), canvasStatus.getBuffer());
 }
 
-void mostraWaveformProfilo(WROVER_KIT_LCD d) {
-
-    uint16_t    x_offset = 20;
-    uint16_t    x_canvas = 280;
-    uint16_t    y_canvas = 70;
-
-    GFXcanvas16 canvasWaveform(x_canvas, y_canvas);
-    canvasWaveform.fillScreen(GREY);
-
-    uint16_t y_top = y_canvas - 10;
-    uint16_t y_bottom = 10;
-
-    if (bufferSize < 2)
-    {
-        return;         // non ho niente da mostrare, non ho neanche 2 punti
-    }
-
-    uint16_t prima_x = 0;          
-    uint16_t prima_y = ((*(ptrBuffer + 0) * 255) / (y_canvas - 20)) + 10;     
-    uint16_t dopo_x = 0;        
-    uint16_t dopo_y = 0;
-
-    /** 
-     * pos_Y (px) = output_8bit * 255 / y_canvas - 20
-     * punto prima, prossimo punto
-     * writeLine
-     * prima = prossimo
-     * calcola prossimo punto
-     * ripeti fino a che index > sizeBuffer
-     **/
-
-    for (uint16_t i = 0; i < bufferSize - 1; i++)
-    {
-        dopo_x = (i + 1) * bufferSize / x_canvas;           
-        dopo_y = ((*(ptrBuffer + i + 1) * 255) / (y_canvas - 20)) + 10;
-        canvasWaveform.writeLine(prima_x, prima_y, dopo_x, dopo_y, WHITE);
-        prima_x = dopo_x;
-        prima_y = dopo_y;
-    }
-
-    d.drawBitmap(x_offset, 160, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
-}
-
 void mostraStatusStop(WROVER_KIT_LCD d, bool stopState, uint16_t colore) {
 
     GFXcanvas16     canvasStop(100, 25);
@@ -971,3 +928,72 @@ void mostraStatusStop(WROVER_KIT_LCD d, bool stopState, uint16_t colore) {
 
     d.drawBitmap(190, 140, canvasStop.width(), canvasStop.height(), canvasStop.getBuffer());
 }
+
+
+void mostraWaveformProfilo(WROVER_KIT_LCD d, uint16_t waveformStep) {
+
+    uint16_t    x_offset = 20;
+    uint16_t    x_canvas = 282;
+    uint16_t    y_canvas = 80;
+
+    GFXcanvas16 canvasWaveform(x_canvas, y_canvas);
+
+    int16_t    x_dopo;
+    int16_t    y_dopo;
+    int16_t    shift;
+    uint8_t    direzione; // 0: antioraria, 1: oraria
+
+    if (((pompaSelezionata == piccola) && (rotazione == 1)) ||
+        ((pompaSelezionata == grande)  && (rotazione == 0)))
+    {
+        shift = waveformStep * -1; // antioraria
+        direzione = 0;
+    }
+    else if (((pompaSelezionata == piccola) && (rotazione == 0)) ||
+             ((pompaSelezionata == grande)  && (rotazione == 1)))
+    {
+        shift = waveformStep; // oraria
+        direzione = 1;
+    }
+    
+    int16_t    x = 0 + shift;
+    int16_t    y = *(ptrBuffer) * 70 / 255;
+
+    if (x < 0)
+        x = 280 + x;
+    else if (x > 280)
+        x = x - 280;
+
+    for (uint16_t index = 1; index < bufferSize; index++)
+    {
+        x_dopo = (index * 280 / bufferSize) + shift;
+        y_dopo = *(ptrBuffer + index) * 70 / 255;   
+
+        /* ci assicuriamo che i pixel che "cadono fuori" facciano il giro del display*/
+        if (x_dopo < 0)
+            x_dopo = 280 + x_dopo;
+        else if (x_dopo > 280)
+            x_dopo = x_dopo - 280;
+        
+        uint16_t diff_x = x_dopo > x ? x_dopo - x : x - x_dopo; // calcola la distanza fra i due punti
+        if (diff_x < 200)
+        {
+            canvasWaveform.drawLine(x, 70 - y - 1, x_dopo, 70 - y_dopo - 1, WHITE);
+            canvasWaveform.drawLine(x, 70 - y, x_dopo, 70 - y_dopo, WHITE);
+            canvasWaveform.drawLine(x, 70 - y + 1, x_dopo, 70 - y_dopo + 1, WHITE);
+        }
+
+        x = x_dopo;
+        y = y_dopo;       
+    }
+
+    
+
+    d.drawBitmap(x_offset - 1, 154, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
+}
+
+void mostraWaveformDinamica(WROVER_KIT_LCD d, uint16_t waveformStep) {
+
+
+}
+

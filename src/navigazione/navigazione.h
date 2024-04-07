@@ -21,5 +21,8 @@ uint8_t selezionaVelocitaDefault(uint8_t velocitaAttuale);
 bool selezioneProfilo(void * ptrDatabase_);
 void listaProfili(void * ptrProfiloAttuale_);
 void runProfilo(uint8_t pompa, void * ptrProfilo);
+uint64_t impostaIntervalloWaveform(uint8_t BPM);
+uint16_t impostaStepWaveform(uint8_t BPM);
+
 
 #endif
