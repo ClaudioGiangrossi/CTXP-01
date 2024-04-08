@@ -929,6 +929,20 @@ void mostraStatusStop(WROVER_KIT_LCD d, bool stopState, uint16_t colore) {
     d.drawBitmap(190, 140, canvasStop.width(), canvasStop.height(), canvasStop.getBuffer());
 }
 
+void mostraRiquadroWaveform(WROVER_KIT_LCD d) {
+
+    uint16_t    x_offset = 20;
+    uint16_t    x_canvas = 282;
+    uint16_t    y_canvas = 80;
+
+    GFXcanvas16 canvasWaveform(x_canvas, y_canvas);
+
+    
+
+    d.drawBitmap(x_offset - 1, 154, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
+    
+}
+
 
 void mostraWaveformProfilo(WROVER_KIT_LCD d, uint16_t waveformStep) {
 
