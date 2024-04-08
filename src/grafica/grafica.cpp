@@ -929,6 +929,20 @@ void mostraStatusStop(WROVER_KIT_LCD d, bool stopState, uint16_t colore) {
     d.drawBitmap(190, 140, canvasStop.width(), canvasStop.height(), canvasStop.getBuffer());
 }
 
+void mostraRiquadroWaveform(WROVER_KIT_LCD d) {
+
+    uint16_t    x_offset = 20;
+    uint16_t    x_canvas = 282;
+    uint16_t    y_canvas = 80;
+
+    GFXcanvas16 canvasWaveform(x_canvas, y_canvas);
+
+    
+
+    d.drawBitmap(x_offset - 1, 154, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
+    
+}
+
 
 void mostraWaveformProfilo(WROVER_KIT_LCD d, uint16_t waveformStep) {
 
@@ -937,6 +951,19 @@ void mostraWaveformProfilo(WROVER_KIT_LCD d, uint16_t waveformStep) {
     uint16_t    y_canvas = 80;
 
     GFXcanvas16 canvasWaveform(x_canvas, y_canvas);
+
+    /* disegno linee verticali */
+    canvasWaveform.drawFastVLine(0, 0, y_canvas - 2, GREY);
+    canvasWaveform.drawFastVLine(1, 0, y_canvas - 2, GREY);
+    canvasWaveform.drawFastVLine(x_canvas - 2, 0, y_canvas - 2, GREY);
+    canvasWaveform.drawFastVLine(x_canvas - 1, 0, y_canvas - 2, GREY);
+
+    /* disegno linee orizzontali */
+    canvasWaveform.drawFastHLine(0, 0, x_canvas, GREY);
+    canvasWaveform.drawFastHLine(0, 1, x_canvas, GREY);
+    canvasWaveform.drawFastHLine(0, y_canvas - 2, x_canvas, GREY);
+    canvasWaveform.drawFastHLine(0, y_canvas - 1, x_canvas, GREY);
+    canvasWaveform.drawFastHLine(0, y_canvas / 2, x_canvas - 1, GREY);
 
     int16_t    x_dopo;
     int16_t    y_dopo;
@@ -978,16 +1005,14 @@ void mostraWaveformProfilo(WROVER_KIT_LCD d, uint16_t waveformStep) {
         uint16_t diff_x = x_dopo > x ? x_dopo - x : x - x_dopo; // calcola la distanza fra i due punti
         if (diff_x < 200)
         {
-            canvasWaveform.drawLine(x, 70 - y - 1, x_dopo, 70 - y_dopo - 1, WHITE);
-            canvasWaveform.drawLine(x, 70 - y, x_dopo, 70 - y_dopo, WHITE);
-            canvasWaveform.drawLine(x, 70 - y + 1, x_dopo, 70 - y_dopo + 1, WHITE);
+            canvasWaveform.drawLine(x, 70 - y + 3, x_dopo, 70 - y_dopo + 3, WHITE);
+            canvasWaveform.drawLine(x, 70 - y + 4, x_dopo, 70 - y_dopo + 4, WHITE);
+            canvasWaveform.drawLine(x, 70 - y + 5, x_dopo, 70 - y_dopo + 5, WHITE);
         }
 
         x = x_dopo;
         y = y_dopo;       
     }
-
-    
 
     d.drawBitmap(x_offset - 1, 154, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
 }
