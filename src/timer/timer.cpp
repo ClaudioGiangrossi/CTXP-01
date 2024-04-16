@@ -66,8 +66,7 @@ void IRAM_ATTR uiRead() {
     {
         button2Pressed = true;
     }
-
-    uiTimerFlag = true;
+    
 }
 
 void IRAM_ATTR readEncoderA() {

@@ -26,7 +26,7 @@ void resetFlagsUI() {
 
 void schermataIniziale() {
     display.begin();
-    display.setRotation(1); // landscape, 3 = USB bottom right, 1 = USB upper left
+    display.setRotation(3); // landscape, 3 = USB bottom right, 1 = USB upper left
     mostraSchermataIniziale(display);
 }
 
