@@ -1074,5 +1074,7 @@ void mostraWaveformDinamica(WROVER_KIT_LCD d, uint16_t waveformStep) {
         x = x_dopo;
         y = y_dopo;       
     }
+
+    d.drawBitmap(x_offset - 1, 154, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
 }
 

@@ -642,7 +642,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
     /* Init variabili */
     bool            stopState = true;           
-    bool            mostraFase = false;           
+    bool            mostraFase = false;          
     uint8_t         BPM = 60;                   // range: 10, 240
     float           gain = 1;                   // range: 0.1, 10
     float           offset = 0;                 // range: -126, 127
@@ -666,7 +666,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     /* imposta la rotazione a seconda della pompa */
     setPinRotazione();
 
-    // TODO capire cosa fare con lo stop
+    // TODO stop default alto? (quindi niente stop)
 
     /* Aggiorna il display, mostra il menu e la forma d'onda */
     display.fillScreen(WROVER_BLACK);
