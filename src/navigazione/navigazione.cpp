@@ -638,13 +638,14 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
     const uint64_t        ticksNumeratore = 60 * 1000000;           // ticks = (60 * 10^6) / (samples * BPM);
     profilo_t *           ptrProfilo = (profilo_t*) ptrProfilo_;    // cast necessario perché sono scarso
-    enum casoStato        {statoBPM, statoGain, statoOffset, stop, tutto};
+    enum casoStato        {statoBPM, statoGain, statoOffset, fase, stop, tutto};
 
     /* Init variabili */
-    bool            stopState = true;           // ? stop di default
+    bool            stopState = true;           
+    bool            mostraFase = false;          
     uint8_t         BPM = 60;                   // range: 10, 240
-    float           gain = 1;                   // ? range: 0.1, 10
-    float           offset = 0;                 // ? range: -126, 127
+    float           gain = 1;                   // range: 0.1, 10
+    float           offset = 0;                 // range: -126, 127
     float           outputValue = 0;
     uint8_t         outputValue_8bit = 0;
     uint16_t        sample = 0;
@@ -665,7 +666,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     /* imposta la rotazione a seconda della pompa */
     setPinRotazione();
 
-    // TODO capire cosa fare con lo stop
+    // TODO stop default alto? (quindi niente stop)
 
     /* Aggiorna il display, mostra il menu e la forma d'onda */
     display.fillScreen(WROVER_BLACK);
@@ -675,7 +676,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
     
     /* waveform */
-    mostraWaveformProfilo(display, 0);
+    mostraWaveformProfilo(display, 0, mostraFase);
     ultimaWaveform = millis();
 
 
@@ -696,7 +697,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     {
         if ((millis() - ultimaWaveform) > timerWaveform)
         {
-            mostraWaveformProfilo(display, waveformStep);
+            mostraWaveformProfilo(display, waveformStep, mostraFase);
             
             waveformStep = waveformStep + stepIncremento;
             if (waveformStep > 279)   // ho fatto il giro
@@ -712,14 +713,20 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
             {
                 selezioneSottomenu--;
             }
-            else if ((posizioneEncoder == destra) && (selezioneSottomenu < statoOffset))
+            else if ((posizioneEncoder == destra) && (selezioneSottomenu < fase))
             {
                 selezioneSottomenu++;
             }
 
             mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
+
+            if(selezioneSottomenu == fase)
+                mostraStatoFase(display, mostraFase, false);
+            else
+                mostraStatoFase(display, mostraFase, true);
+
             posizioneEncoder = fermo;
-            delay(200);
+            delay(130);
         }
 
         /* menu di edit dello status */
@@ -831,6 +838,10 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
                     break;
 
+                case fase:
+                    mostraFase = !mostraFase;
+                    selezioneSottomenu = statoBPM;
+                    break;
                 default:
                     break;
 
@@ -856,7 +867,8 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
             delay(500);
             resetFlagsUI();
             mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
-            mostraWaveformProfilo(display, waveformStep);
+            mostraStatoFase(display, mostraFase, true);
+            mostraWaveformProfilo(display, waveformStep, mostraFase);
         }
     }
 
@@ -891,7 +903,7 @@ uint16_t impostaStepWaveform(uint8_t BPM) {
         return 9;
     else
         return 11;
-    
+
 }
 
 uint8_t menuWiFi() {
