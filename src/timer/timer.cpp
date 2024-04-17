@@ -66,7 +66,7 @@ void IRAM_ATTR uiRead() {
     {
         button2Pressed = true;
     }
-    
+
 }
 
 void IRAM_ATTR readEncoderA() {
@@ -76,7 +76,7 @@ void IRAM_ATTR readEncoderA() {
         {
             if (digitalRead(encoderPinA) == LOW)       // controllo ridondante per robustezza
             {
-                    posizioneEncoder = destra;
+                    posizioneEncoder = sinistra;
             }
         }
     }
@@ -89,7 +89,7 @@ void IRAM_ATTR readEncoderB() {
         if (digitalRead(encoderPinA) == HIGH)
         {
             if (digitalRead(encoderPinB) == LOW)        // controllo ridondante per robustezza
-                posizioneEncoder = sinistra;
+                posizioneEncoder = destra;
         }
     }
 }
