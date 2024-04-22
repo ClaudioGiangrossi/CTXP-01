@@ -15,8 +15,8 @@ hw_timer_t *encoderTimer = NULL;
  **/
 
 uint16_t preScaler = 80;           // allora timer_ticks = 1MHz, T_interrupt = ticks * us
-uint64_t uiTicks = 100000;          // T_interrupt = 100 ms
-uint64_t encoderTicks = 50000;     // T_interrupt = 50 ms
+uint64_t uiTicks = 123000;          // T_interrupt = 123 ms
+uint64_t encoderTicks = 70;     // T_interrupt = 0.07 ms
 dac_channel_t dac = DAC_CHANNEL_2; // DAC PIN 26
 uint8_t *ptrBuffer = NULL;
 uint16_t bufferSize = 0;
@@ -24,14 +24,11 @@ uint16_t indexBuffer = 0;
 
 volatile bool outputTimerFlag = false;
 volatile bool uiTimerFlag = false;
+volatile bool wait = false;
 
 volatile uint8_t buffer_PB1[3] = {0};
 volatile uint8_t buffer_PB2[3] = {0};
 
-volatile uint8_t buffer_encoder_A[5] = {0};
-volatile uint8_t buffer_encoder_B[5] = {0};
-volatile uint8_t somma_A = 0;
-volatile uint8_t somma_B = 0;
 
 bool uiTimerEnable()
 {
@@ -40,7 +37,10 @@ bool uiTimerEnable()
     timerAlarmWrite(uiTimer, uiTicks, true);
     timerAlarmEnable(uiTimer);
 
-    
+    encoderTimer = timerBegin(1, preScaler, true);
+    timerAttachInterrupt(encoderTimer, &readEncoder, true);
+    timerAlarmWrite(encoderTimer, encoderTicks, true);
+    timerAlarmEnable(encoderTimer);
 
     return true;
 }
@@ -50,6 +50,11 @@ bool uiTimerDisable()
     timerDetachInterrupt(uiTimer);
     timerAlarmDisable(uiTimer);
     timerEnd(uiTimer);
+
+    timerDetachInterrupt(encoderTimer);
+    timerAlarmDisable(encoderTimer);
+    timerEnd(encoderTimer);
+
     return true;
 }
 
@@ -117,63 +122,39 @@ void IRAM_ATTR uiRead2()
 
 void IRAM_ATTR readEncoder()
 {
-
-    somma_A = 0;
-    somma_B = 0;
-
-    /* scorro la FIFO, sommo 4 letture eccetto quella che butto via */
-    for (uint8_t i = 0; i < 4; i++)
+    if (gpio_get_level((gpio_num_t) encoderPinA) && gpio_get_level((gpio_num_t) encoderPinB))
     {
-        somma_A += buffer_encoder_A[i + 1];
-        buffer_encoder_A[i] = buffer_encoder_A[i + 1];
-
-        somma_B += buffer_encoder_B[i + 1];
-        buffer_encoder_B[i] = buffer_encoder_B[i + 1];
-    }
-
-    /* faccio una nuova lettura, la aggiungo alla somma */
-    buffer_encoder_A[5] = !digitalRead(encoderPinA);
-    somma_A += buffer_encoder_A[5];
-
-    buffer_encoder_B[5] = !digitalRead(encoderPinB);
-    somma_B += buffer_encoder_B[5];
-
-    if (posizioneEncoder == fermo)
-    {
-        if (somma_A > 2)
-        {
-            posizioneEncoder = sinistra;
-        }
-        else if (somma_B > 2)
-        {
-            posizioneEncoder = destra;
-        }
+        wait = false;
     }
 }
 
 void IRAM_ATTR readEncoderA()
 {
-    if (posizioneEncoder == fermo)
+    if (wait == false)
     {
-        if (digitalRead(encoderPinB) == HIGH)
+        if (gpio_get_level((gpio_num_t) encoderPinB) == HIGH)
         {
-            if (digitalRead(encoderPinA) == LOW) // controllo ridondante per robustezza
+            if (gpio_get_level((gpio_num_t) encoderPinA) == LOW) // controllo ridondante per robustezza
             {
                 posizioneEncoder = sinistra;
             }
         }
+
+        wait = true;
     }
 }
 
 void IRAM_ATTR readEncoderB()
 {
-    if (posizioneEncoder == fermo)
+    if (wait == false)
     {
-        if (digitalRead(encoderPinA) == HIGH)
+        if (gpio_get_level((gpio_num_t) encoderPinA) == HIGH)
         {
-            if (digitalRead(encoderPinB) == LOW) // controllo ridondante per robustezza
+            if (gpio_get_level((gpio_num_t) encoderPinB) == LOW) // controllo ridondante per robustezza
                 posizioneEncoder = destra;
         }
+
+        wait = true;
     }
 }
 

@@ -67,9 +67,6 @@ uint8_t selezioneMenu() {
 
         posizioneEncoder = fermo;
         delay(100);
-        Serial.println(button2Pressed);
-        Serial.println(!digitalRead(pushButton2));
-        Serial.println();
 
     } while (button1Pressed == false);
 
