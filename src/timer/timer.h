@@ -6,16 +6,14 @@
 bool uiTimerEnable();
 bool uiTimerDisable();
 void uiRead();
+void uiRead2();
 
 bool outputTimerEnable(uint64_t ticks);
 bool outputTimerDisable();
 void outputCampione();
 
+void readEncoder();
 void readEncoderA();
 void readEncoderB();
-
-void interruptEncoderA();
-void interruptEncoderB();
-
 
 #endif

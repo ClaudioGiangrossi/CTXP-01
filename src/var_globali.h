@@ -6,6 +6,7 @@
 #include <WROVER_KIT_LCD.h>
 #include <assert.h>
 #include "driver/dac_common.h"
+#include "driver/gpio.h"
 
 
 // #include <WiFi.h>    commentata per non compilarla ogni volta, da sviluppare ancora wifi
