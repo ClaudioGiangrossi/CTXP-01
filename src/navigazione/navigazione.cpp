@@ -39,6 +39,8 @@ bool init_DAC() {
 uint8_t selezioneMenu() {
 
     mostraMenu(display);
+    delay(80);
+    resetFlagsUI();
 
     uint8_t selezione = 1;
     muoviCursoreMenu(display, selezione);
@@ -64,7 +66,10 @@ uint8_t selezioneMenu() {
         }
 
         posizioneEncoder = fermo;
-        delay(200);
+        delay(100);
+        Serial.println(button2Pressed);
+        Serial.println(!digitalRead(pushButton2));
+        Serial.println();
 
     } while (button1Pressed == false);
 
@@ -82,6 +87,8 @@ uint8_t selezionePompa() {
 
     uint8_t selezione_pompa = pompaSelezionata; // permette di gestire errori
     mostraSelezionePompa(display, selezione_pompa);
+    delay(100);
+    resetFlagsUI();
 
     do
     {
@@ -89,7 +96,7 @@ uint8_t selezionePompa() {
         {
             selezione_pompa = piccola;
             mostraSelezionePompa(display, selezione_pompa);
-            delay(130);
+            delay(80);
         }
         else if (posizioneEncoder == destra)
         {
@@ -103,7 +110,7 @@ uint8_t selezionePompa() {
         Serial.printf("Pompa: %d\n", selezione_pompa);
         #endif
 
-        delay(80);
+        delay(50);
 
     }   while ((button1Pressed == false) && (button2Pressed == false));
 
@@ -121,7 +128,7 @@ uint8_t selezionePompa() {
         }
     }
 
-    delay(150);
+    delay(100);
     resetFlagsUI();
     return menu;
 
@@ -133,6 +140,8 @@ uint8_t menuSteady() {
     uint8_t     selezione = run;
     uint8_t     pompa = pompaSelezionata;
     mostraSteady(display, selezione, true);
+    delay(150);
+    resetFlagsUI();
 
     do
     {
@@ -154,7 +163,7 @@ uint8_t menuSteady() {
         }
 
         posizioneEncoder = fermo;
-        delay(150);
+        delay(100);
 
     } while ((button1Pressed == false) && (button2Pressed == false));
 
@@ -170,17 +179,19 @@ uint8_t menuSteady() {
 
         if (selezione == run)
         {
+            delay(80);
             runSteady(pompa);
         }
         else if (selezione == velocita)
         {
-            delay(150);
+            delay(80);
             uint8_t velocitaScelta = selezionaVelocitaDefault(velocitaDefault);
             scriviVelocitaDefault(velocitaScelta);
             velocitaDefault = velocitaScelta;
         }
         else if (selezione == rotazione)
         {
+            delay(120);
             sensoRotazione(pompa);
         }
 
@@ -202,7 +213,7 @@ void runSteady(uint8_t pompa) {
     uint64_t        lastSerialRequest = millis();
     uint64_t        intervalloAggiornamento = 5000; // ms
     uint64_t        serialRequestTime = 1000; // ms
-    uint8_t         stopState = true;
+    uint8_t         stopState = false;
 
     uint64_t        lastRotellina = millis();
     uint64_t        tempo_refresh = 500 + (1500 * velocita / 255);
@@ -218,6 +229,7 @@ void runSteady(uint8_t pompa) {
     /* icona del senso di rotazione */
     giraRotellina(display, true);
 
+    delay(80);
     resetFlagsUI();
 
     while (button2Pressed == false)
@@ -343,13 +355,13 @@ uint8_t selezionaVelocitaDefault(uint8_t velocitaAttuale) {
     if (button2Pressed)
     {
         button2Pressed = false;
-        delay(150);
+        delay(80);
     }
  
     if (button1Pressed)
     {
         button1Pressed = false;
-        delay(150);
+        delay(100);
         return velocitaSelezionata;
     }
 
@@ -371,8 +383,8 @@ bool sensoRotazione(uint8_t pompa) {
         break;
     }
 
-    delay(200);
     resetFlagsUI();
+    delay(300);
 
     do
     {
@@ -422,11 +434,11 @@ bool sensoRotazione(uint8_t pompa) {
     {
         rotazione = selezione;
         printRotazione(display, pompa, selezione);
-        delay(200);
+        delay(100);
         return true;
     }
 
-    delay(200);
+    delay(100);
     return false;
 }
 
@@ -497,6 +509,7 @@ uint8_t menuProfilo() {
 
         if (selezione == sceltaProfilo)
         {
+            delay(80);
             if (selezioneProfilo((void*) ptrDatabase))
             {
                 return profilo;
@@ -510,12 +523,13 @@ uint8_t menuProfilo() {
         else if (selezione == run)
         {
             profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, ultimoProfiloCaricato);
-            delay(300);
+            delay(200);
             runProfilo(pompa, (void*) profiloSelezionato);
             mostraMenu(display);
         }
         else if (selezione == rotazione)
         {
+            delay(120);
             sensoRotazione(pompa);
         }
 
@@ -548,7 +562,7 @@ bool selezioneProfilo(void *ptrDatabase_) {
     /* Display della lista */
     listaProfili(profiloSelezionato);
 
-    delay(500);
+    delay(200);
     resetFlagsUI();
 
     /* Menu di selezione del profilo, con lista a scorrimento */
@@ -577,7 +591,7 @@ bool selezioneProfilo(void *ptrDatabase_) {
             }
 
             posizioneEncoder = fermo;
-            delay(250);
+            delay(125);
 
         }
 
@@ -599,7 +613,7 @@ bool selezioneProfilo(void *ptrDatabase_) {
             ultimoProfiloCaricato = profiloSelezionato->nome;
         }
 
-        delay(100);
+        delay(80);
         return true;
     }
 
@@ -726,14 +740,14 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
                 mostraStatoFase(display, mostraFase, true);
 
             posizioneEncoder = fermo;
-            delay(130);
+            delay(80);
         }
 
         /* menu di edit dello status */
         if (button1Pressed)
         {
             mostraStatusProfilo(display, selezioneSottomenu, true, BPM, gain, offset, stopState);
-            delay(1000);
+            delay(150);
             resetFlagsUI();
 
             uint8_t BPM_modifica = BPM;
@@ -864,7 +878,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
                 Serial.println();
             }
             
-            delay(500);
+            delay(250);
             resetFlagsUI();
             mostraStatusProfilo(display, selezioneSottomenu, false, BPM, gain, offset, stopState);
             mostraStatoFase(display, mostraFase, true);
