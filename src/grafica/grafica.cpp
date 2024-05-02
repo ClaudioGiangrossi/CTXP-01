@@ -858,7 +858,7 @@ void mostraStatusProfilo(WROVER_KIT_LCD d, uint8_t caso, bool edit,
 
             case statoGain:
                 canvasStatus.drawBitmap(x_statusInfo - 20, 70 - 14, freccia_spicy, 15, 14, WHITE);
-                canvasStatus.setCursor(x_statusInfo, 70);
+                canvasStatus.setCursor(x_statusInfo, 69);
                 canvasStatus.printf("GAIN: %0.1f", gain);
                 break;
 
@@ -1001,6 +1001,7 @@ void mostraWaveformFase(WROVER_KIT_LCD d) {
     x = (indexBuffer * 280 / bufferSize);
     y = *(ptrBuffer + indexBuffer) * 70 / 256;
     canvasWaveform.fillCircle(x, 70 - y + 4, 4, RED);
+    canvasWaveform.writeFastVLine(x, 0, canvasWaveform.height(), RED);
 
     d.drawBitmap(x_offset - 1, 154, canvasWaveform.width(), canvasWaveform.height(), canvasWaveform.getBuffer());
 }

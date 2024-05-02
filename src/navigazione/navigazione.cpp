@@ -653,9 +653,9 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
 
     /* Init variabili */
     bool            stopState = true;           
-    bool            mostraFase = false;          
+    bool            mostraFase = true;          
     uint8_t         BPM = 60;                   // range: 10, 240
-    float           gain = 1;                   // range: 0.1, 10
+    float           gain = 1;                   // range: 0.1, 5
     float           offset = 0;                 // range: -126, 127
     float           outputValue = 0;
     uint8_t         outputValue_8bit = 0;
@@ -788,17 +788,17 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
                     {
                         if (posizioneEncoder == sinistra)
                         {
-                            if ((gain_modifica > 0.1) && (gain_modifica <= 1))
+                            if ((gain_modifica > 0.1) && (gain_modifica <= 2))
                                 gain_modifica -= 0.1;
-                            else if ((gain_modifica > 1) && (gain_modifica <= 10))
-                                gain_modifica--;
+                            else if ((gain_modifica > 2) && (gain_modifica <= 5))
+                                gain_modifica -= 0.5;
                         }
                         else if (posizioneEncoder == destra)
                         {
-                            if ((gain_modifica < 1) && (gain_modifica > 0) )
+                            if ((gain_modifica < 2) && (gain_modifica > 0) )
                                 gain_modifica += 0.1;
-                            else if ((gain_modifica >= 1) && (gain_modifica < 10))
-                                gain_modifica++;
+                            else if ((gain_modifica >= 2) && (gain_modifica < 5))
+                                gain_modifica += 0.5;
                         }
 
                         posizioneEncoder = fermo;
