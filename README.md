@@ -1,7 +1,7 @@
-#CTXP-01 OVERVIEW
+# CTXP-01 OVERVIEW
 Questa repository contiene il firmware e documentazione hardware per un controllore per pompe peristaltiche, basato su microcontrollore ESP32 e l'Arduino framework di PlatformIO.
 
-#FUNZIONALITÀ DI BASE
+# FUNZIONALITÀ DI BASE
 1. POMPA: selezione fra i modelli di pompe disponibili.
 2. STEADY: genera un segnale di tensione costante. Il sottomenù velocità permette di regolare la velocità di default.
 3. PROFILO: permette di riprodurre e controllare un profilo di velocità presente nel database interno.
@@ -9,7 +9,7 @@ Questa repository contiene il firmware e documentazione hardware per un controll
    > Il database interno si può aggiornare solo riprogrammando il microcontrollore attualmente.
 4.  WIFI: TODO
 
-#COME AGGIUNGERE UN PROFILO AL DATABASE
+# COME AGGIUNGERE UN PROFILO AL DATABASE
 Per convenienza viene spiegato come aggiungere un profilo partendo da un vettore in Matlab.
 
 1. Avviare lo [script](https://github.com/signo-codebase/CTXP-01/blob/main/PW_database/PW_to_C_Array.m) per la generazione della struttura dati. Questo script accetta un vettore colonna
