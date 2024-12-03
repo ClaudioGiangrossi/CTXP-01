@@ -19,7 +19,6 @@
 #define GREY WROVER_DARKGREY
 
 
-
 uint16_t        x_boxDestro = 122;
 uint16_t        y_boxDestro = 14;
 uint16_t        w_boxDestro = 185;
@@ -46,8 +45,7 @@ void mostraSchermataIniziale(WROVER_KIT_LCD d){   //short for display
     d.drawPixel(X1, cursore_Y + 2, WHITE);
     //d.drawPixel(X1, cursore_Y + 3, WHITE);
     
-    for (uint16_t i = X1; i < X2; i++)
-    {
+    for (uint16_t i = X1; i < X2; i++) {
         d.drawPixel(i, cursore_Y - 2 + round( (30 * sin((double) i/(2*PI))) ), WHITE);
         d.drawPixel(i, cursore_Y - 1 + round( (30 * sin((double) i/(2*PI))) ), WHITE);
         d.drawPixel(i, cursore_Y     + round( (30 * sin((double) i/(2*PI))) ), WHITE);
@@ -56,14 +54,12 @@ void mostraSchermataIniziale(WROVER_KIT_LCD d){   //short for display
         delay(5);
     }
 
-    for (uint16_t i = X2 - 1; i < MAX_X; i++)
-    {
+    for (uint16_t i = X2 - 1; i < MAX_X; i++) {
         d.drawPixel(i, cursore_Y - 1, WHITE);
         d.drawPixel(i, cursore_Y, WHITE);
         d.drawPixel(i, cursore_Y + 1, WHITE);
         delay(5);
     }
-    
 
     delay(2000);
 }
@@ -397,13 +393,13 @@ void mostraVelocitaSelezionata(WROVER_KIT_LCD d, uint8_t velocita, bool clearScr
         disegnaCursorePiccolo(d, X + 25, Y2 + 43, WHITE);
     }
 
-
-    d.fillRect(X + 50, Y2 + 35, 100, 35, BLACK);
+//F    d.fillRect(X + 50, Y2 + 35, 100, 35, BLACK);
+    d.fillRect(X + 50, Y2 + 35, 115, 35, BLACK);
     
     d.setFont(&FreeSansBold18pt7b);
     d.setCursor(X + 50, Y2 + 61);
     d.setTextColor(WHITE);
-    d.print(velocita * 100 / 255);
+    d.print(velocita * 100.0 / 255, 1);
     d.print("%");
 
 }
@@ -417,7 +413,7 @@ void aggiornaVelocitaMostrata(WROVER_KIT_LCD d, uint8_t velocita) {
     canvasVelocita.setTextSize(2);
     canvasVelocita.setCursor(5, 60);
     canvasVelocita.setTextColor(WHITE);
-    canvasVelocita.print(velocita * 100 / 255);
+    canvasVelocita.print(velocita * 100.0 / 255, 1);      // Francesco
     canvasVelocita.print("%");
 
     d.drawBitmap(95, 91, canvasVelocita.width(), canvasVelocita.height(), 
@@ -626,6 +622,15 @@ void mostraWiFi(WROVER_KIT_LCD d){
     d.fillScreen(WROVER_BLACK);
     d.setCursor(150, 100);
     d.println("WIFI");
+}
+
+void mostraWiFiFra (WROVER_KIT_LCD d, String str){
+    d.fillScreen(WROVER_BLACK);
+    d.setCursor(150, 100);
+    d.println("WIFI");
+    d.setCursor(150, 120);
+    d.print("Connect to:");
+    d.println(str);
 }
 
 void printPompa(WROVER_KIT_LCD d, uint8_t Pompa) {

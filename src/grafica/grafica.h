@@ -36,6 +36,7 @@ void mostraMenu(WROVER_KIT_LCD);
 void mostraSteady(WROVER_KIT_LCD, uint8_t selezione, bool clearScreen);
 void mostraProfilo(WROVER_KIT_LCD, uint8_t selezione, bool clearScreen);
 void mostraWiFi(WROVER_KIT_LCD);
+void mostraWiFiFra(WROVER_KIT_LCD, String);
 
 
 void muoviCursoreMenu(WROVER_KIT_LCD, uint8_t selezione);

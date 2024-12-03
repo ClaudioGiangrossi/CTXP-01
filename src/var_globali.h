@@ -41,7 +41,7 @@ enum posizioneEncoder_enum {sinistra, fermo, destra};
 extern volatile uint8_t     posizioneEncoder;
 extern volatile bool        button1Pressed;
 extern volatile bool        button2Pressed;
-
+extern volatile unsigned int Encoder_Timer;
 
 /* ==================================== TIMERS ==================================== */
 /* ================================================================================ */

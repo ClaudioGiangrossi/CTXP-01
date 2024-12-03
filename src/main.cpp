@@ -3,6 +3,7 @@
 #include "timer/timer.h"
 #include "var_globali.h"
 #include "pin_defs.h"
+#include <WiFi.h>
 
 volatile uint8_t    scenaAttuale = menu;
 uint8_t             pompaSelezionata = errore;
@@ -10,16 +11,18 @@ uint8_t             velocitaDefault = 0;
 uint8_t             rotazione = 0;
 String              ultimoProfiloCaricato = "Sinusoide";
 
-/* ===================================== SETUP ====================================== */
-/* ================================================================================== */
+
+//-----------------------------------------------------------------------------
+//                  WiFi
+//-----------------------------------------------------------------------------
+const char* ssid = "MSDLAB_2019a";    // ssid
+const char* password = "MSDLAB2019";  // psw
+WiFiServer server(80);                // Set web server port number num.
 
 
 void setup() {
-
   Serial.begin(115200);
-
-  /* setup GPIO */
-  pinMode(encoderPinA, INPUT_PULLUP);
+  pinMode(encoderPinA, INPUT_PULLUP);     // setup GPIO
   pinMode(encoderPinB, INPUT_PULLUP);
   pinMode(pushButton1, INPUT);
   pinMode(pushButton2, INPUT);
@@ -29,25 +32,36 @@ void setup() {
   //pinMode(DAC, OUTPUT);
   pinMode(STOP_OUT, OUTPUT); // 0 start, 1 stop
 
-  /* init timer UI */
-  uiTimerEnable();
-  attachInterrupt(digitalPinToInterrupt(encoderPinA), readEncoderA, FALLING);
-  attachInterrupt(digitalPinToInterrupt(encoderPinB), readEncoderB, FALLING);
-
-  /* config DAC */
-  init_DAC();
+  uiTimerEnable();      // init timer UI
+//F  attachInterrupt(digitalPinToInterrupt(encoderPinA), readEncoderA, FALLING);
+//F  attachInterrupt(digitalPinToInterrupt(encoderPinB), readEncoderB, FALLING);
+  init_DAC();           // config DAC
 
   /* carico ultimo stato */
   pompaSelezionata = chiediPompa();
   velocitaDefault = chiediVelocitaDefault();
   ultimoProfiloCaricato = chiediProfiloCaricato();
 
-  // Wifi.begin(ssid, password);
-  // da definire ssid e password in secrets.h
-  
   schermataIniziale();
+  Serial.println("Ciao!"); 
 
+  Serial.print("Connecting to ");     // Connect to Wi-Fi network with SSID and password
+  Serial.print(ssid);
+  Serial.print(" / ");
+  Serial.println(password);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");         // Print local IP address and start web server
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  server.begin();
 }
+
 
 
 /* ===================================== LOOP ===================================== */
@@ -76,7 +90,7 @@ void loop() {
         break;
 
     case wifi:
-          scenaAttuale = menuWiFi();
+          scenaAttuale = menuWiFiFra();
         break; 
 
     default:

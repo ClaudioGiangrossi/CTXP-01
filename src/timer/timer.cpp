@@ -16,7 +16,8 @@ hw_timer_t *encoderTimer = NULL;
 
 uint16_t preScaler = 80;           // allora timer_ticks = 1MHz, T_interrupt = ticks * us
 uint64_t uiTicks = 123000;          // T_interrupt = 123 ms
-uint64_t encoderTicks = 70;     // T_interrupt = 0.07 ms
+//uint64_t encoderTicks = 70;     // T_interrupt = 0.07 ms
+uint64_t encoderTicksFra = 100;     // T_interrupt = 500 us
 dac_channel_t dac = DAC_CHANNEL_2; // DAC PIN 26
 uint8_t *ptrBuffer = NULL;
 uint16_t bufferSize = 0;
@@ -24,23 +25,27 @@ uint16_t indexBuffer = 0;
 
 volatile bool outputTimerFlag = false;
 volatile bool uiTimerFlag = false;
-volatile bool wait = false;
-
-volatile uint8_t buffer_PB1[3] = {0};
-volatile uint8_t buffer_PB2[3] = {0};
-
+//  volatile bool wait = false;              // Fra
+// volatile uint8_t buffer_PB1[3] = {0};     // Fra
+// volatile uint8_t buffer_PB2[3] = {0};     // Fra
+volatile uint8_t        Encoder_Av[3] = {0};
+volatile uint8_t        Encoder_Bv[3] = {0};
+volatile uint8_t        Encoder_State = 0;
+volatile unsigned int   Encoder_Timer = 0;
 
 bool uiTimerEnable()
 {
-    uiTimer = timerBegin(0, preScaler, true);
-    timerAttachInterrupt(uiTimer, &uiRead, true);
-    timerAlarmWrite(uiTimer, uiTicks, true);
-    timerAlarmEnable(uiTimer);
+    uiTimer = timerBegin(0, preScaler, true);                   // Count UP @ 80 MHz. Ogni 1 us genera un Timer_Tick
+    timerAttachInterrupt(uiTimer, &uiRead, true);               // Aggancio alla ISR per la lettura dei pulsanti, fronte di salita
+    timerAlarmWrite(uiTimer, uiTicks, true);                    // Genera l'interrupt ogni 123 ms
+    timerAlarmEnable(uiTimer);                                  // Abilita il timer
 
-    encoderTimer = timerBegin(1, preScaler, true);
-    timerAttachInterrupt(encoderTimer, &readEncoder, true);
-    timerAlarmWrite(encoderTimer, encoderTicks, true);
-    timerAlarmEnable(encoderTimer);
+    encoderTimer = timerBegin(1, preScaler, true);              // Count UP @ 80 MHz. Ogni 1 us genera un Timer_Tick
+//    timerAttachInterrupt(encoderTimer, &readEncoder, true);     // Aggancio alla ISR di lettura encoder, fronte di salita
+    timerAttachInterrupt(encoderTimer, &readEncoderFra, true);     // Aggancio alla ISR di lettura encoder, fronte di salita
+//    timerAlarmWrite(encoderTimer, encoderTicks, true);          // Genera un interrupt ogni 70 us
+    timerAlarmWrite(encoderTimer, encoderTicksFra, true);          // Genera un interrupt ogni 500 us
+    timerAlarmEnable(encoderTimer);                             // Abilita l'interrupt
 
     return true;
 }
@@ -90,11 +95,14 @@ void IRAM_ATTR uiRead()
     }
 }
 
+
+//--------------------------------------------------------------------------------
+//      Codice non usato
+//--------------------------------------------------------------------------------
+/*
 void IRAM_ATTR uiRead2()
 {
-
-    /* lettura PB1 */
-    if (!button1Pressed)
+    if (!button1Pressed)            // lettura PB1
     {
         buffer_PB1[2] = buffer_PB1[1];
         buffer_PB1[1] = buffer_PB1[0];
@@ -105,9 +113,7 @@ void IRAM_ATTR uiRead2()
             button1Pressed = true;
         }
     }
-
-    /* lettura PB2 */
-    if (!button2Pressed)
+    if (!button2Pressed)                // lettura PB2
     {
         buffer_PB2[2] = buffer_PB2[1];
         buffer_PB2[1] = buffer_PB2[0];
@@ -119,7 +125,80 @@ void IRAM_ATTR uiRead2()
         }
     }
 }
+*/
 
+//--------------------------------------------------------------------------------
+//          Nuova driver Encoder (Fra)
+//--------------------------------------------------------------------------------
+void IRAM_ATTR readEncoderFra()
+{
+    uint8_t Ar, Br, Vr;
+
+    Encoder_Av[2] = Encoder_Av[1];
+    Encoder_Bv[2] = Encoder_Bv[1];
+    Encoder_Av[1] = Encoder_Av[0];
+    Encoder_Bv[1] = Encoder_Bv[0];
+    Encoder_Av[0] = (digitalRead(encoderPinA)) & 1;
+    Encoder_Bv[0] = (digitalRead(encoderPinB)) & 1;
+    Encoder_Timer++;
+
+    if ((Encoder_Av[2] + Encoder_Av[1] + Encoder_Av[0]) > 1)    Ar = 1;
+    else                                                        Ar = 0;
+    if ((Encoder_Bv[2] + Encoder_Bv[1] + Encoder_Bv[0]) > 1)    Br = 1;
+    else                                                        Br = 0;
+
+    Vr = (Ar << 1) | Br;
+
+    switch (Encoder_State) { 
+        case 0:
+            if      (Vr == 1)    Encoder_State = 1;
+            else if (Vr == 2)    Encoder_State = 4;
+            else                 Encoder_State = 0;
+            break;
+
+        case 1:
+            if (Vr == 1)    break;
+            if (Vr == 0)    Encoder_State = 2;
+            else            Encoder_State = 7;
+            break;
+        case 2:
+            if (Vr == 0)    break;
+            if (Vr == 2)    Encoder_State = 3;
+            else            Encoder_State = 7;
+            break;
+        case 3:
+            if (Vr == 2)    break;
+            if (Vr == 3) {  posizioneEncoder = sinistra;
+                            Encoder_State = 0; }
+            else            Encoder_State = 7;
+            break;
+
+        case 4:
+            if (Vr == 2)    break;
+            if (Vr == 0)    Encoder_State = 5;
+            else            Encoder_State = 7;
+            break;
+        case 5:
+            if (Vr == 0)    break;
+            if (Vr == 1)    Encoder_State = 6;
+            else            Encoder_State = 7;
+            break;
+        case 6:
+            if (Vr == 1)    break;
+            if (Vr == 3) {  posizioneEncoder = destra;
+                            Encoder_State = 0; }
+            else            Encoder_State = 7;
+            break;
+        case 7:             // Error
+        default:
+            Encoder_State = 0;
+            break;
+    }
+}
+
+
+
+/* F
 void IRAM_ATTR readEncoder()
 {
     if (gpio_get_level((gpio_num_t) encoderPinA) && gpio_get_level((gpio_num_t) encoderPinB))
@@ -157,6 +236,8 @@ void IRAM_ATTR readEncoderB()
         wait = true;
     }
 }
+*/
+
 
 void IRAM_ATTR outputCampione()
 {

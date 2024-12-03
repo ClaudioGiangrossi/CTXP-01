@@ -12,8 +12,10 @@ bool outputTimerEnable(uint64_t ticks);
 bool outputTimerDisable();
 void outputCampione();
 
-void readEncoder();
-void readEncoderA();
-void readEncoderB();
+//void readEncoder();
+//void readEncoderA();
+//void readEncoderB();
+
+void readEncoderFra();
 
 #endif

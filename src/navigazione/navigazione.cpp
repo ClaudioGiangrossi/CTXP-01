@@ -7,6 +7,20 @@
 #include "var_globali.h"
 #include "pin_defs.h"
 
+//-------------------------------------------------------
+//              WiFi
+//-------------------------------------------------------
+#include <WiFi.h>
+extern WiFiServer server; 
+unsigned long currentTime = millis();       // Current time
+unsigned long previousTime = 0;             // Previous time
+const long timeoutTime = 2000;  // Define timeout time in milliseconds (example: 2000ms = 2s)
+String header = "";                  // Variable to store the HTTP request
+String output26State = "off";       // Auxiliar variables to store the current output state
+String output27State = "off";
+const int output26 = 26;            // Assign output variables to GPIO pins
+const int output27 = 27;
+
 
 WROVER_KIT_LCD      display;
 
@@ -16,7 +30,64 @@ volatile bool       button2Pressed = false;
 volatile uint8_t    posizioneEncoder = fermo;
 
 
-/* FUNZIONI DI NAVIGAZIONE */
+//-------------------------------------------------------
+//              FUNZIONI WEB
+//-------------------------------------------------------
+void VisualizzaLaPaginaHTML (WiFiClient client, String output26State, String output27State) 
+{
+    client.println("<!DOCTYPE html><html>");
+    client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+    client.println("<link rel=\"icon\" href=\"data:,\">");
+            // CSS to style the on/off buttons 
+            // Feel free to change the background-color and font-size attributes to fit your preferences
+    client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
+    client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
+    client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
+    client.println(".button2 {background-color: #555555;}</style></head>");
+            // Web Page Heading
+    client.println("<body><h1>Controllore pompa - Web Server</h1>");
+            // Display current state, and ON/OFF buttons for GPIO 26  
+    client.println("<p>GPIO 26 - State " + output26State + "</p>");
+            // If the output26State is off, it displays the ON button       
+    if (output26State=="off") {
+              client.println("<p><a href=\"/26/on\"><button class=\"button\">ON</button></a></p>");
+    } else {
+              client.println("<p><a href=\"/26/off\"><button class=\"button button2\">OFF</button></a></p>");
+    } 
+            // Display current state, and ON/OFF buttons for GPIO 27  
+    client.println("<p>GPIO 27 - State " + output27State + "</p>");
+            // If the output27State is off, it displays the ON button       
+    if (output27State=="off") {
+              client.println("<p><a href=\"/27/on\"><button class=\"button\">ON</button></a></p>");
+    } else {
+              client.println("<p><a href=\"/27/off\"><button class=\"button button2\">OFF</button></a></p>");
+    }
+    client.println("</body></html>");
+            
+            // The HTTP response ends with another blank line
+    client.println();
+}
+
+//-------------------------------------------------------
+//              FUNZIONI DI NAVIGAZIONE
+//-------------------------------------------------------
+//int ComputeDeltaIncrement (int State) {
+int ComputeDeltaIncrement (void) {
+    static unsigned int TimeOld;
+    int                 TimeNew, DeltaTime;
+    int                 k;
+
+    TimeNew = Encoder_Timer;
+//    if (State)
+//        TimeOld = TimeNew;
+
+    DeltaTime = TimeNew - TimeOld;
+    TimeOld = TimeNew;
+    k = 1000 / DeltaTime;
+    if (k < 1)  k = 1;
+    if (k > 10) k = 10;
+    return (k);
+ }
 
 void resetFlagsUI() {
     button1Pressed = false;
@@ -140,20 +211,15 @@ uint8_t menuSteady() {
     delay(150);
     resetFlagsUI();
 
-    do
-    {
-        if (posizioneEncoder == sinistra)
-        {
-            if (selezione > run)
-            {
+    do {
+        if (posizioneEncoder == sinistra) {
+            if (selezione > run) {
             selezione--;
             mostraSteady(display, selezione, false);
             }
         }
-        else if (posizioneEncoder == destra)
-        {
-            if (selezione < rotazione)
-            {
+        else if (posizioneEncoder == destra) {
+            if (selezione < rotazione) {
             selezione++;
             mostraSteady(display, selezione, false);
             }
@@ -164,30 +230,25 @@ uint8_t menuSteady() {
 
     } while ((button1Pressed == false) && (button2Pressed == false));
 
-    if(button2Pressed)
-    {
+    if(button2Pressed) {
         button2Pressed = false;
         return menu;
     }
 
-    if (button1Pressed)
-    {
+    if (button1Pressed) {
         button1Pressed = false;
 
-        if (selezione == run)
-        {
+        if (selezione == run) {
             delay(80);
             runSteady(pompa);
-        }
-        else if (selezione == velocita)
-        {
+
+        } else if (selezione == velocita) {
             delay(80);
             uint8_t velocitaScelta = selezionaVelocitaDefault(velocitaDefault);
             scriviVelocitaDefault(velocitaScelta);
             velocitaDefault = velocitaScelta;
-        }
-        else if (selezione == rotazione)
-        {
+
+        } else if (selezione == rotazione) {
             delay(120);
             sensoRotazione(pompa);
         }
@@ -229,32 +290,25 @@ void runSteady(uint8_t pompa) {
     delay(80);
     resetFlagsUI();
 
-    while (button2Pressed == false)
-    {
-        /* modifica della velocita */
-        if (posizioneEncoder != fermo)
-        {
-            if ((posizioneEncoder == destra) && (velocita < 255))
-            {
+    while (button2Pressed == false) {
+        if (posizioneEncoder != fermo) {                 // modifica della velocita
+
+            if ((posizioneEncoder == destra) && (velocita < 255)) {
                 dac_output_voltage(dac, ++velocita);
-            }
-            else if (posizioneEncoder == sinistra && (velocita > 0))
-            {
+            } else if (posizioneEncoder == sinistra && (velocita > 0)) {
                 dac_output_voltage(dac, --velocita);
             }
 
             posizioneEncoder = fermo;
             aggiornaVelocitaMostrata(display, velocita);
         }
-
-        // posso anche cambiare la velocità da seriale 
-        if (millis() - lastSerialRequest > serialRequestTime)
-        {
-            if (Serial.available() > 0)
-            {
+        
+        if (millis() - lastSerialRequest > serialRequestTime) {      // posso anche cambiare la velocità da seriale 
+        
+            if (Serial.available() > 0) {
                 uint8_t datoRicevuto = Serial.parseInt();
-                if ((datoRicevuto > 0) && (datoRicevuto < 256))
-                {
+
+                if ((datoRicevuto > 0) && (datoRicevuto < 256)) {
                     Serial.println(datoRicevuto);
                     velocita = datoRicevuto;
                     dac_output_voltage(dac, velocita);
@@ -263,12 +317,9 @@ void runSteady(uint8_t pompa) {
             }
         }
 
-
-        /* cambia stato, RUN oppure STOP */
-        if (button1Pressed == true)
-        {
-            if (digitalRead(pushButton1) == HIGH)   // controllo se ho già rilasciato il pushbutton
-            {
+        if (button1Pressed == true) {                 // cambia stato, RUN oppure STOP
+       
+            if (digitalRead(pushButton1) == HIGH) {  // controllo se ho già rilasciato il pushbutton
                 button1Pressed = false;
                 stopState = !stopState;
                 digitalWrite(STOP_OUT, stopState);
@@ -277,86 +328,57 @@ void runSteady(uint8_t pompa) {
         }
 
         /* icona del senso di rotazione */
-        if ( (stopState == true) && ((millis() - lastRotellina) > tempo_refresh))
-        {
+        if ( (stopState == true) && ((millis() - lastRotellina) > tempo_refresh)) {
             giraRotellina(display, giro);
             giro = !giro;
-            tempo_refresh = 200 + (1500 * (255 - velocita) / 255);
+            tempo_refresh = 150 + (1500 * (255 - velocita) / 255);
             lastRotellina = millis();
         }
-
-        /*
-        if ((millis() - ultimoAggiornamento) > intervalloAggiornamento)
-        {
-            aggiornamentoDati(pompa);
-            ultimoAggiornamento = millis();
-            // displayDati();
-        }
-        */
-
     }
 
-    if (button2Pressed == true)
-    {
+    if (button2Pressed == true) {
         dac_output_voltage(dac, 0);
     }
-
 }
 
 uint8_t selezionaVelocitaDefault(uint8_t velocitaAttuale) {
-    
-    resetFlagsUI();
-    
-    uint8_t velocitaSelezionata = velocitaAttuale;
 
+    int velocitaSelezionata = velocitaAttuale;
+    int             k;
+
+    resetFlagsUI();                         // resetta l'interfaccia utente (pulsanti e encoder)
     mostraVelocitaSelezionata(display, velocitaSelezionata, true);
 
-    while ((button1Pressed == false) && (button2Pressed == false))
-    {
-        if (posizioneEncoder != fermo)
-        {
-            if (posizioneEncoder == destra)
-            {
-                if (velocitaSelezionata < 255)
-                {
-                    velocitaSelezionata++;
-                }
-                else if (velocitaSelezionata == 255)
-                {
-                    velocitaSelezionata = 0;
-                }
-            }
-            else if (posizioneEncoder == sinistra)
-            {
-                if (velocitaSelezionata > 0)
-                {
-                velocitaSelezionata--;
-                }
-                else if (velocitaSelezionata == 0)
-                {
-                    velocitaSelezionata = 255;
-                }
+//    ComputeDeltaIncrement (1);
+
+    while ((button1Pressed == false) && (button2Pressed == false))  {
+        if (posizioneEncoder != fermo) {
+            k = ComputeDeltaIncrement ();
+
+            if (posizioneEncoder == destra) {
+                    velocitaSelezionata += k;
+
+            } else if (posizioneEncoder == sinistra) {
+                    velocitaSelezionata -= k;
             }
 
             posizioneEncoder = fermo;
-            mostraVelocitaSelezionata(display, velocitaSelezionata, false);
+            if (velocitaSelezionata < 0) velocitaSelezionata = 0;
+            if (velocitaSelezionata > 255) velocitaSelezionata = 255;
+            mostraVelocitaSelezionata(display, (uint8_t)velocitaSelezionata, false);
+
+            #ifndef NDEBUG
+            Serial.printf("\nVelocita Selezionata: %u", velocitaSelezionata);
+            #endif
         }
-
-        delay(10);
-
-        #ifndef NDEBUG
-        Serial.printf("\nVelocita Selezionata: %u", velocitaSelezionata);
-        #endif
     }
 
-    if (button2Pressed)
-    {
+    if (button2Pressed) {
         button2Pressed = false;
         delay(80);
     }
  
-    if (button1Pressed)
-    {
+    if (button1Pressed) {
         button1Pressed = false;
         delay(100);
         return velocitaSelezionata;
@@ -922,11 +944,83 @@ uint8_t menuWiFi() {
     mostraWiFi(display);
     resetFlagsUI();
 
-    while (button2Pressed == false)
-    {
+    while (button2Pressed == false) {
         // TODO
     }
 
     return menu;
-    
+}
+
+uint8_t menuWiFiFra() {
+
+  String str = WiFi.localIP().toString();
+  
+  mostraWiFiFra (display, str);
+
+  while (button2Pressed == false) {
+    WiFiClient client = server.available();   // Listen for incoming clients
+
+    if (client) {                             // If a new client connects,
+    currentTime = millis();
+    previousTime = currentTime;
+    Serial.println("New Client.");          // print a message out in the serial port
+    String currentLine = "";                // make a String to hold incoming data from the client
+
+    while (client.connected() && currentTime - previousTime <= timeoutTime) {  // loop while the client's connected
+      currentTime = millis();
+      if (client.available()) {             // if there's bytes to read from the client,
+        char c = client.read();             // read a byte, then
+        header += c;
+        if (c == '\n') {                    // if the byte is a newline character
+
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0) {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println("Connection: close");
+            client.println();
+
+
+            // turns the GPIOs on and off
+            if (header.indexOf("GET /26/on") >= 0) {        // Cerca la stringa in header
+              Serial.println("GPIO 26 on");
+              output26State = "on";
+//F              digitalWrite(output26, HIGH);
+            } else if (header.indexOf("GET /26/off") >= 0) {
+              Serial.println("GPIO 26 off");
+             output26State = "off";
+//F              digitalWrite(output26, LOW);
+            } else if (header.indexOf("GET /27/on") >= 0) {
+              Serial.println("GPIO 27 on");
+              output27State = "on";
+//F              digitalWrite(output27, HIGH);
+            } else if (header.indexOf("GET /27/off") >= 0) {
+              Serial.println("GPIO 27 off");
+              output27State = "off";
+//F              digitalWrite(output27, LOW);
+            }
+            
+            VisualizzaLaPaginaHTML (client, output26State, output27State);
+            break;                      // Break out of the while loop
+
+          } else { // if you got a newline, then clear currentLine
+            currentLine = "";
+          }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c;      // add it to the end of the currentLine
+        }
+      }
+    }
+    // Clear the header variable
+    header = "";
+    // Close the connection
+    client.stop();
+    Serial.println("Client disconnected.");
+    Serial.println("");
+  }
+  }
+      return menu;
 }
