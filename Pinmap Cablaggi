@@ -1,0 +1,22 @@
+Cablaggio Cavo potenziometro-DB15
+
+MINIDIN    DB15
+6          2
+7          11
+3          5
+2          9  Not used actually
+4          8
+8          15
+
+
+Cablaggio Cavo pompa grande-DB15
+
+MINIDIN    DB15
+6          2
+5          10
+7          11
+3          5
+2          9  Not used actually
+1          14
+4          8
+8          15
