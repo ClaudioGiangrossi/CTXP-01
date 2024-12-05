@@ -273,8 +273,11 @@ void mostraSelezionePompa(WROVER_KIT_LCD d, uint8_t pompaDaEvidenziare) {
         d.setTextColor(GREY);
         d.setFont(&FreeSans18pt7b);
         d.print("PMD24C");
-
+        #ifndef NDEBUG
+        Serial.printf("Pompa: 120U\n");
+        #endif
         break;
+
     case grande:
         disegnaCursore(d, X, Y1, BLACK);
         d.setCursor(X + 30, Y1 + 15);
@@ -287,6 +290,10 @@ void mostraSelezionePompa(WROVER_KIT_LCD d, uint8_t pompaDaEvidenziare) {
         d.setTextColor(WHITE);
         d.setFont(&FreeSans18pt7b);
         d.print("PMD24C");
+        #ifndef NDEBUG
+        Serial.printf("Pompa: PMD24C\n");
+        #endif
+        break;
 
     default:
         break;
@@ -461,52 +468,23 @@ void giraRotellina(WROVER_KIT_LCD d, bool giro) {
     
     if (pompaSelezionata == piccola)
     {
-        if (rotazione == 0)
-        {
-            if (giro == false)
-            {
-                c.drawBitmap(0, 0, rotellina_oraria, 38, 32, WHITE);
-            }
-            else
-            {
-                c.drawBitmap(0, 0, rotellina_oraria_giro, 32, 38, WHITE);
-            }
+        if (rotazione == 0) {
+            if (giro == false)  c.drawBitmap(0, 0, rotellina_oraria, 38, 32, WHITE);
+            else                c.drawBitmap(0, 0, rotellina_oraria_giro, 32, 38, WHITE);
+            
+        } else {
+            if (giro == false)  c.drawBitmap(0, 0, rotellina_antior, 38, 32, WHITE);
+            else                c.drawBitmap(0, 0, rotellina_antior_giro, 32, 38, WHITE);
         }
-        else
-        {
-            if (giro == false)
-            {
-                c.drawBitmap(0, 0, rotellina_antior, 38, 32, WHITE);
-            }
-            else
-            {
-                c.drawBitmap(0, 0, rotellina_antior_giro, 32, 38, WHITE);
-            }
-        }
-    }
-    else    // pompa grande
-    {
-        if (rotazione == 1)
-        {
-            if (giro == false)
-            {
-                c.drawBitmap(0, 0, rotellina_oraria, 38, 32, WHITE);
-            }
-            else
-            {
-                c.drawBitmap(0, 0, rotellina_oraria_giro, 32, 38, WHITE);
-            }
-        }
-        else
-        {
-           if (giro == false)
-            {
-                c.drawBitmap(0, 0, rotellina_antior, 38, 32, WHITE);
-            }
-            else
-            {
-                c.drawBitmap(0, 0, rotellina_antior_giro, 32, 38, WHITE);
-            } 
+
+    } else {                                   // pompa grande
+        if (rotazione == 1) {
+            if (giro == false)  c.drawBitmap(0, 0, rotellina_oraria, 38, 32, WHITE);
+            else                c.drawBitmap(0, 0, rotellina_oraria_giro, 32, 38, WHITE);
+            
+        } else {
+           if (giro == false)   c.drawBitmap(0, 0, rotellina_antior, 38, 32, WHITE);
+            else                c.drawBitmap(0, 0, rotellina_antior_giro, 32, 38, WHITE);
         }
     }
 

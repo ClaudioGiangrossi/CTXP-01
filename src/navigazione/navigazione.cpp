@@ -158,37 +158,24 @@ uint8_t selezionePompa() {
     delay(100);
     resetFlagsUI();
 
-    do
-    {
-        if (posizioneEncoder == sinistra)
-        {
+    do {
+        if (posizioneEncoder == sinistra) {
             selezione_pompa = piccola;
             mostraSelezionePompa(display, selezione_pompa);
             delay(80);
-        }
-        else if (posizioneEncoder == destra)
-        {
+        } else if (posizioneEncoder == destra) {
             selezione_pompa = grande;
             mostraSelezionePompa(display, selezione_pompa);
         }
-
         posizioneEncoder = fermo;
-
-        #ifndef NDEBUG
-        Serial.printf("Pompa: %d\n", selezione_pompa);
-        #endif
-
-        delay(50);
-
+        delay(100);
     }   while ((button1Pressed == false) && (button2Pressed == false));
 
-    if (button2Pressed == true)
-    {
+    if (button2Pressed == true) {
         return menu;
     }
 
-    if (button1Pressed == true)
-    {
+    if (button1Pressed == true) {
         if (registraPompaSelezionata(selezione_pompa) == false)
         {
             Serial.println("ERRORE in selezionePompa");
@@ -199,7 +186,6 @@ uint8_t selezionePompa() {
     delay(100);
     resetFlagsUI();
     return menu;
-
 }
 
 uint8_t menuSteady() {
@@ -265,80 +251,73 @@ uint8_t menuSteady() {
 }
 
 void runSteady(uint8_t pompa) {
-
-    uint8_t         velocita = velocitaDefault;
-    uint64_t        ultimoAggiornamento = millis();
-    uint64_t        lastSerialRequest = millis();
-    uint64_t        intervalloAggiornamento = 5000; // ms
-    uint64_t        serialRequestTime = 1000; // ms
-    uint8_t         stopState = false;
-
-    uint64_t        lastRotellina = millis();
-    uint64_t        tempo_refresh = 500 + (1500 * velocita / 255);
-    bool            giro = false;
+    uint8_t         velocita = velocitaDefault; // 0..255
+    uint8_t         stopState = true;
+    uint64_t        Serial_LastTime = millis();
+    uint64_t        Serial_RefreshTime = 1000; // ms
+    uint64_t        Icon_LastTime = millis();
+    uint64_t        Icon_RefreshTime;
+    bool            Icon_Direction = false;
 
     setPinRotazione();
-    dac_output_voltage(dac, velocita);
     digitalWrite(STOP_OUT, stopState);
-
+    dac_output_voltage(dac, velocita);
     mostraRunSteady(display, velocita);
     Serial.println("Valori validi di velocità: da 0 a 255.");
-
-    /* icona del senso di rotazione */
-    giraRotellina(display, true);
-
+    giraRotellina(display, Icon_Direction);
     delay(80);
     resetFlagsUI();
 
     while (button2Pressed == false) {
+        Icon_RefreshTime = 150 + (1500 * (255 - velocita) / 255);
+        dac_output_voltage(dac, velocita);
+
         if (posizioneEncoder != fermo) {                 // modifica della velocita
-
-            if ((posizioneEncoder == destra) && (velocita < 255)) {
-                dac_output_voltage(dac, ++velocita);
-            } else if (posizioneEncoder == sinistra && (velocita > 0)) {
-                dac_output_voltage(dac, --velocita);
-            }
-
+            if ((posizioneEncoder == destra) && (velocita < 255))       ++velocita;
+            else if (posizioneEncoder == sinistra && (velocita > 0))    --velocita;
             posizioneEncoder = fermo;
             aggiornaVelocitaMostrata(display, velocita);
+            #ifndef NDEBUG
+            Serial.printf("RunSteady: NuovaVelocità=%d\n", velocita);
+            #endif              
         }
         
-        if (millis() - lastSerialRequest > serialRequestTime) {      // posso anche cambiare la velocità da seriale 
-        
+        if (millis() - Serial_LastTime > Serial_RefreshTime) {      // posso anche cambiare la velocità da seriale
+            Serial_LastTime = millis();
             if (Serial.available() > 0) {
                 uint8_t datoRicevuto = Serial.parseInt();
-
-                if ((datoRicevuto > 0) && (datoRicevuto < 256)) {
+                if ((datoRicevuto >= 0) && (datoRicevuto <= 255)) {
                     Serial.println(datoRicevuto);
                     velocita = datoRicevuto;
-                    dac_output_voltage(dac, velocita);
                     aggiornaVelocitaMostrata(display, velocita);
                 }
             }
         }
 
         if (button1Pressed == true) {                 // cambia stato, RUN oppure STOP
-       
             if (digitalRead(pushButton1) == HIGH) {  // controllo se ho già rilasciato il pushbutton
                 button1Pressed = false;
                 stopState = !stopState;
                 digitalWrite(STOP_OUT, stopState);
                 aggiornaStatoSteady(display, stopState);
+                #ifndef NDEBUG
+                Serial.printf("RunSteady: StopState=%d\n", stopState);
+                #endif                
             }
         }
 
-        /* icona del senso di rotazione */
-        if ( (stopState == true) && ((millis() - lastRotellina) > tempo_refresh)) {
-            giraRotellina(display, giro);
-            giro = !giro;
-            tempo_refresh = 150 + (1500 * (255 - velocita) / 255);
-            lastRotellina = millis();
+        if ( (stopState == false) && ((millis() - Icon_LastTime) > Icon_RefreshTime)) {    // Senso di rotazione dell'icona
+            giraRotellina(display, Icon_Direction);
+            Icon_Direction = !Icon_Direction;
+            Icon_LastTime = millis();
         }
     }
 
-    if (button2Pressed == true) {
-        dac_output_voltage(dac, 0);
-    }
+    dac_output_voltage(dac, 0);         // velocity = 0
+    digitalWrite(STOP_OUT, true);       // stop
+    #ifndef NDEBUG
+    Serial.printf("RunSteady: function out\n");
+    #endif     
 }
 
 uint8_t selezionaVelocitaDefault(uint8_t velocitaAttuale) {
@@ -462,92 +441,72 @@ bool sensoRotazione(uint8_t pompa) {
 }
 
 uint8_t menuProfilo() {
-
-    profilo_t database = {
-        "head",
-        1,
-        NULL,
-        NULL,
-        {0}
-    };
-
-    profilo_t *ptrDatabase = &database;
-
-    if (caricaDatabase(ptrDatabase) == NULL)
-    {
-        Serial.println("ERRORE: database nullo");
-        delay(2000);
-        return menu;
-    }
-    else
-    {
-        visualizzaDatabase(ptrDatabase);
-    }
-
+    profilo_t   database = {"head", 1, NULL, NULL, {0} };
+    profilo_t   *ptrDatabase = &database;
     enum        opzioni {run, sceltaProfilo, rotazione};
     uint8_t     selezione = run;
     uint8_t     pompa = pompaSelezionata;
 
+    if (caricaDatabase(ptrDatabase) == NULL) {
+        Serial.println("ERRORE: database nullo");
+        delay(2000);
+        return menu;
+    } else {
+        visualizzaDatabase(ptrDatabase);        // Invia il DB su seriale
+    }
+
+    Serial.printf("MenuProfilo: step 1\n");
     mostraProfilo(display, selezione, true);
     resetFlagsUI();
+    Serial.printf("MenuProfilo: step 2\n");
 
-    do
-    {
-        if (posizioneEncoder == sinistra)
-        {
-            if ((selezione == sceltaProfilo) || (selezione == rotazione) )
-            {
+    button1Pressed = false;                     // Scelta di una delle funzioni AVVIA - PROFILO - ROTAZIONE
+    button2Pressed = false;
+    do {
+        if (posizioneEncoder == sinistra) {
+            if ((selezione == sceltaProfilo) || (selezione == rotazione) ) {
                 selezione--;
                 mostraProfilo(display, selezione, false);
             }
-        }
-        else if (posizioneEncoder == destra)
-        {
-            if ((selezione == run) || (selezione == sceltaProfilo))
-            {
+
+        } else if (posizioneEncoder == destra) {
+            if ((selezione == run) || (selezione == sceltaProfilo)) {
                 selezione++;
                 mostraProfilo(display, selezione, false);
             }
-
         }
-
         posizioneEncoder = fermo;
         delay(80);
 
     } while ((button1Pressed == false) && (button2Pressed == false));
 
-    if(button2Pressed)
-    {
+    Serial.printf("MenuProfilo: step 3\n");
+
+    if(button2Pressed) {
         button2Pressed = false;
         return menu;
     }
 
-    if (button1Pressed)
-    {
+    if (button1Pressed) {
         button1Pressed = false;
 
-        if (selezione == sceltaProfilo)
-        {
-            delay(80);
-            if (selezioneProfilo((void*) ptrDatabase))
-            {
+        if (selezione == sceltaProfilo) {
+            Serial.printf("MenuProfilo: step 4\n");
+
+//            if (selezioneProfilo((void*) ptrDatabase)) {        // Selezione di uno dei profili presenti nel DB
+            if (selezioneProfilo(ptrDatabase)) {        // Selezione di uno dei profili presenti nel DB
                 return profilo;
-            }
-            else
-            {
-                Serial.println("[ERRORE] in selezioneProfilo");
+            } else {
+                Serial.println("MenuProfilo: ERRORE in selezioneProfilo");
                 return menu;
             }
-        }
-        else if (selezione == run)
-        {
+        } else if (selezione == run) {
             profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, ultimoProfiloCaricato);
             delay(200);
             runProfilo(pompa, (void*) profiloSelezionato);
             mostraMenu(display);
-        }
-        else if (selezione == rotazione)
-        {
+
+        } else if (selezione == rotazione) {
             delay(120);
             sensoRotazione(pompa);
         }
@@ -560,46 +519,31 @@ uint8_t menuProfilo() {
     #endif
 
     return menu;
-    
 }
 
-bool selezioneProfilo(void *ptrDatabase_) {
+//bool selezioneProfilo(void *ptrDatabase_) {
+bool selezioneProfilo(profilo_t *ptrDatabase) {
+    String      profiloAttuale = ultimoProfiloCaricato;    // Dichiarazioni e init puntatori
+//    profilo_t   *ptrDatabase = (profilo_t*) ptrDatabase_;     // cast necessario perchè sono scarso
+    profilo_t   *profiloSelezionato = cercaProfilo(ptrDatabase, profiloAttuale);
 
-    /* Dichiarazioni e init puntatori*/
-    String profiloAttuale = ultimoProfiloCaricato;
-
-    profilo_t *ptrDatabase = (profilo_t*) ptrDatabase_;     // cast necessario perchè sono scarso
-
-    profilo_t *profiloSelezionato = cercaProfilo(ptrDatabase, profiloAttuale);
-
-    if (profiloSelezionato == NULL)
-    {
-        Serial.println("ERRORE in selezioneProfilo");
+    if (profiloSelezionato == NULL) {
+        Serial.println("SelezioneProfilo: ERRORE! Il profilo selezionato non è valido");
         return false;
     }
 
-    /* Display della lista */
-    listaProfili(profiloSelezionato);
-
+    listaProfili(profiloSelezionato);                   // Display della lista
     delay(200);
     resetFlagsUI();
 
-    /* Menu di selezione del profilo, con lista a scorrimento */
-    do
-    {
-        if (posizioneEncoder != fermo)
-        {
-            if (posizioneEncoder == sinistra)
-            {   
-                if ((profiloSelezionato->pre != NULL) && (profiloSelezionato->pre->nome != "head"))
-                {
+    do {                                                // Menu di selezione del profilo, con lista a scorrimento
+        if (posizioneEncoder != fermo) {
+            if (posizioneEncoder == sinistra) {   
+                if ((profiloSelezionato->pre != NULL) && (profiloSelezionato->pre->nome != "head")) {
                     profiloSelezionato = profiloSelezionato->pre;
                 }
-            }
-            else if (posizioneEncoder == destra)
-            {
-                if (profiloSelezionato->next != NULL)
-                {
+            } else if (posizioneEncoder == destra)  {
+                if (profiloSelezionato->next != NULL) {
                     profiloSelezionato = profiloSelezionato->next;
                 }
             }
@@ -611,23 +555,15 @@ bool selezioneProfilo(void *ptrDatabase_) {
 
             posizioneEncoder = fermo;
             delay(125);
-
         }
-
     } while((button2Pressed == false) && (button1Pressed == false));
 
-    /* Se si decide di tornare indietro */
-    if (button2Pressed == true)
-    {
+    if (button2Pressed == true) {                   // Se si decide di tornare indietro
         return false;
     }
 
-    /* Se si decide di selezionare un nuovo profilo */
-    if (button1Pressed == true)
-    {
-        // evitiamo di caricare per errore roba che non dovrebbe essere caricata
-        if ((profiloSelezionato != NULL) && (profiloSelezionato->nome != "head"))
-        {
+    if (button1Pressed == true) {                                                   // Se si decide di selezionare un nuovo profilo
+        if ((profiloSelezionato != NULL) && (profiloSelezionato->nome != "head")) { // evitiamo di caricare per errore roba che non dovrebbe essere caricata
             scriviProfiloCaricato(profiloSelezionato->nome);
             ultimoProfiloCaricato = profiloSelezionato->nome;
         }
@@ -635,7 +571,6 @@ bool selezioneProfilo(void *ptrDatabase_) {
         delay(80);
         return true;
     }
-
     return false;   // non dovrei mai arrivare qui
 }
 
@@ -677,7 +612,7 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     bool            stopState = true;           
     bool            mostraFase = true;          
     uint8_t         BPM = 60;                   // range: 10, 240
-    float           gain = 1;                   // range: 0.1, 5
+    float           gain = 0.1;                   // range: 0.1, 5
     float           offset = 0;                 // range: -126, 127
     float           outputValue = 0;
     uint8_t         outputValue_8bit = 0;
@@ -689,6 +624,8 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     uint16_t        stepIncremento = 7;
     uint64_t        ticks;
     uint64_t        ticksDenominatore = ((uint64_t) ptrProfilo->size) * ((uint64_t) BPM);
+
+    digitalWrite(STOP_OUT, false);        // Pompa in RUN
 
     /* alloca buffer dei campioni in output */
     if (setupBuffer(ptrProfilo, gain, offset) == false)
@@ -908,8 +845,8 @@ void runProfilo(uint8_t pompa, void * ptrProfilo_) {
     /* ------------------ FINE LOOP------------------ */
 
     outputTimerDisable();
-    dac_output_voltage(dac, 0);
-
+    dac_output_voltage(dac, 0);             // Velocità = 0
+    digitalWrite(STOP_OUT, true);        // Pompa in STOP
     return;
 }
 

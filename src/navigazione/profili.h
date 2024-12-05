@@ -5,8 +5,7 @@
 
 /* Versione primitiva per gestire il database di profili */
 
-/* STRUTTURA DI BASE */
-typedef struct _profilo_t{
+typedef struct _profilo_t{       // STRUTTURA DEL BASE
     String      nome;
     uint16_t    size;
     _profilo_t   *pre;           // puntatori per implementazione con lista collegata
@@ -24,6 +23,5 @@ profilo_t*    caricaDatabase(profilo_t*);
 profilo_t*    cercaProfilo(profilo_t *ptrNavigazione, String nomeProfilo);
 void          visualizzaDatabase(profilo_t*);
 bool          setupBuffer(profilo_t * ptrProfilo, float gain, float offset);
-
 
 #endif

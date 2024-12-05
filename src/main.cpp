@@ -30,7 +30,8 @@ void setup() {
   pinMode(TACHO_INPUT, INPUT);
   pinMode(ROTATION_OUT, OUTPUT);
   //pinMode(DAC, OUTPUT);
-  pinMode(STOP_OUT, OUTPUT); // 0 start, 1 stop
+  pinMode(STOP_OUT, OUTPUT);      // 0 start, 1 stop
+
 
   uiTimerEnable();      // init timer UI
 //F  attachInterrupt(digitalPinToInterrupt(encoderPinA), readEncoderA, FALLING);
@@ -40,11 +41,19 @@ void setup() {
   /* carico ultimo stato */
   pompaSelezionata = chiediPompa();
   velocitaDefault = chiediVelocitaDefault();
-  ultimoProfiloCaricato = chiediProfiloCaricato();
+//  ultimoProfiloCaricato = chiediProfiloCaricato();
+
+  #ifndef NDEBUG
+    Serial.printf("-----------------------------\n   START PROGRAM\n-----------------------------\n");
+    Serial.printf("Main: PompaSelezionata=%d\n", pompaSelezionata);
+    Serial.printf("Main: velocitaDefault=%d\n", velocitaDefault);
+    Serial.printf("Main: ultimoProfiloCaricato='%s', %c\n", ultimoProfiloCaricato, ultimoProfiloCaricato[0]);
+  #endif
+
+  digitalWrite(STOP_OUT, true);   // stop
+  dac_output_voltage(dac, 0);     // velocity = 0
 
   schermataIniziale();
-  Serial.println("Ciao!"); 
-
   Serial.print("Connecting to ");     // Connect to Wi-Fi network with SSID and password
   Serial.print(ssid);
   Serial.print(" / ");

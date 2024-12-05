@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <WROVER_KIT_LCD.h>
+#include "profili.h"
 
 void resetFlagsUI();
 void schermataIniziale();
@@ -19,7 +20,9 @@ uint8_t menuWiFiFra();
 bool sensoRotazione(uint8_t pompa);
 void runSteady(uint8_t pompa);
 uint8_t selezionaVelocitaDefault(uint8_t velocitaAttuale);
-bool selezioneProfilo(void * ptrDatabase_);
+//bool selezioneProfilo(void * ptrDatabase_);
+bool selezioneProfilo(profilo_t *ptrDatabase);
+
 void listaProfili(void * ptrProfiloAttuale_);
 void runProfilo(uint8_t pompa, void * ptrProfilo);
 uint64_t impostaIntervalloWaveform(uint8_t BPM);

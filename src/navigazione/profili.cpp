@@ -97,54 +97,40 @@ bool cancellaProfilo(profilo_t *database, profilo_t daCancellare) {
 }
 
 bool caricaProfiliBase(profilo_t *database) {
-
     bool esito = true;
-    esito &= appendProfilo(database, &sinusoide);
+
+    esito &= appendProfilo(database, &sinusoide);       // esito &= appendProfilo(database, &<nuovoProfilo>);
     esito &= appendProfilo(database, &rampa);
     esito &= appendProfilo(database, &onda_quadra);
     esito &= appendProfilo(database, &Radial_P);
     esito &= appendProfilo(database, &Digital_P);
 
-
-    // esito &= appendProfilo(database, &<nuovoProfilo>);
-    // append per ogni profilo
-
-    return esito;   // se tutti gli append vanno a buon fine esito è true
+    return esito;   // se tutti gli append vanno a buon fine, l'esito è true
 }
 
 profilo_t *caricaDatabase(profilo_t *ptrDatabase) {
-    if (caricaProfiliBase(ptrDatabase) == true)
-    {
+    if (caricaProfiliBase(ptrDatabase) == true) {
         // TODO if(caricaProfiliUtente(ptrDatabase) == true)
         Serial.println("Database caricato correttamente");
         return ptrDatabase;
-    }
-    else
-    {
+
+    } else {
         Serial.println("ERRORE in caricaDatabaseProfili()");
         return NULL;
     }
 }
 
 void visualizzaDatabase(profilo_t *ptrDatabase) {
-
     profilo_t *ptrNavigazione = ptrDatabase; // ? necessario
 
-    if (ptrNavigazione->pre != NULL)
-    {
-        Serial.println("Non è stato passato il puntatore alla lista");
+    if (ptrNavigazione->pre != NULL) {
+        Serial.println("Error: non è stato passato il puntatore alla lista");
     }
 
-    while (ptrNavigazione != NULL)
-    {
-        Serial.print(ptrNavigazione->nome);
-        Serial.printf(", size: %u", ptrNavigazione->size);
-        Serial.println();
+    while (ptrNavigazione != NULL) {
+        Serial.printf("%s, size: %u\n", ptrNavigazione->nome, ptrNavigazione->size);
         ptrNavigazione = ptrNavigazione->next;
     }
-    
-    Serial.println();
-    
 }
 
 profilo_t *cercaProfilo(profilo_t *ptrNavigazione, String nomeProfilo) {
